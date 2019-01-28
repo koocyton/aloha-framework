@@ -3,6 +3,7 @@ package com.doopp.gauss.server.handle;
 import com.doopp.gauss.server.dao.UserDao;
 import com.doopp.gauss.server.entity.User;
 import com.doopp.gauss.server.redis.CustomShadedJedis;
+import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import io.netty.buffer.ByteBuf;
 import org.reactivestreams.Publisher;
@@ -29,7 +30,7 @@ public class HelloHandle {
         User boy = sessionRedis.get("boy2".getBytes(), User.class);
         if (boy==null) {
             logger.info("1 : {}", boy);
-            boy = userDao.getUser();
+            boy = userDao.getById();
             sessionRedis.set("boy2".getBytes(), boy);
         }
         logger.info("2 : {}", boy);

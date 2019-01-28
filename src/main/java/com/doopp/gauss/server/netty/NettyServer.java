@@ -19,6 +19,7 @@ public class NettyServer {
     public void run() {
 
         Consumer<HttpServerRoutes> rr = routes -> routes
+                .file("/", "/public")
                 .get("/hello", (req, res) -> res.sendString(
                         injector.getInstance(HelloHandle.class).hello()
                 ))

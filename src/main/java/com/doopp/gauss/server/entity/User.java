@@ -10,4 +10,8 @@ public class User implements Serializable {
     private Long id;
 
     private String name;
+
+    public String toString() {
+        return "{\"id\":" + this.id + ", \"name\":\"" + this.name + "\"}";
+    }
 }
