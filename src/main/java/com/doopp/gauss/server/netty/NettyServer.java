@@ -1,6 +1,7 @@
 package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.app.handle.HelloHandle;
+import com.doopp.gauss.server.util.JarToolUtil;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import reactor.netty.DisposableServer;
@@ -15,19 +16,21 @@ public class NettyServer {
     @Inject
     private Injector injector;
 
-    public void run() {
+    @Inject
+    private HelloHandle helloHandle;
 
+    public void run() {
         Consumer<HttpServerRoutes> routesConsumer = routes -> routes
                 .get("/hello", (req, res) -> res.sendString(
-                        injector.getInstance(HelloHandle.class).hello()
+                        helloHandle.hello()
                 ))
                 .get("/boy", (req, res) -> res.sendString(
-                        injector.getInstance(HelloHandle.class).boy(req)
+                        helloHandle.boy(req)
                 ))
                 .ws("/game", (in, out) -> out.send(
-                        injector.getInstance(HelloHandle.class).game(in.receive())
+                        helloHandle.game(in.receive())
                 ))
-                .directory("/", Paths.get("D:\\project\\aloha-framework\\src\\main\\resources\\public"));
+                .directory("/", Paths.get(JarToolUtil.getJarDir() + "/resources/public/"));
 
         DisposableServer disposableServer = HttpServer.create()
                 .route(routesConsumer)
