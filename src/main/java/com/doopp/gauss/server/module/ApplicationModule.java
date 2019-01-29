@@ -1,7 +1,8 @@
 package com.doopp.gauss.server.module;
 
 import com.doopp.gauss.server.application.ApplicationProperties;
-import com.doopp.gauss.server.handle.HelloHandle;
+import com.doopp.gauss.app.handle.HelloHandle;
+import com.doopp.gauss.server.util.IdWorker;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
@@ -17,11 +18,11 @@ public class ApplicationModule extends AbstractModule {
 		bind(HelloHandle.class).in(Scopes.SINGLETON);
 	}
 
-//	@Singleton
-//	@Provides
-//	public IdWorker userIdWorker() {
-//		return new IdWorker(1, 1);
-//	}
+	@Singleton
+	@Provides
+	public IdWorker userIdWorker() {
+		return new IdWorker(1, 1);
+	}
 
 	@Singleton
 	@Provides
