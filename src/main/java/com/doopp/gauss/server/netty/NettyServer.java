@@ -8,6 +8,8 @@ import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.http.server.HttpServerRoutes;
 
+import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
 
@@ -19,7 +21,13 @@ public class NettyServer {
     @Inject
     private HelloHandle helloHandle;
 
-    public void run() {
+    public void run() throws URISyntaxException {
+        System.out.print("\n" + getClass().getResource("") + "\n");
+        System.out.print("\n" + getClass().getResource("/resources") + "\n");
+        System.out.print("\n" + getClass().getResource("/resources/public") + "\n");
+        Path resource = JarToolUtil.getJarName().contains("jar")
+                ? Paths.get(getClass().getResource("/resources/public").toURI())
+                : Paths.get(getClass().getResource("/public").toURI());
         Consumer<HttpServerRoutes> routesConsumer = routes -> routes
                 .get("/hello", (req, res) -> res.sendString(
                         helloHandle.hello()
@@ -30,7 +38,7 @@ public class NettyServer {
                 .ws("/game", (in, out) -> out.send(
                         helloHandle.game(in.receive())
                 ))
-                .directory("/", Paths.get(JarToolUtil.getJarDir() + "/resources/public/"));
+                .directory("/", resource);
 
         DisposableServer disposableServer = HttpServer.create()
                 .route(routesConsumer)
