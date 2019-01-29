@@ -1,5 +1,6 @@
 package com.doopp.gauss.server.module;
 
+import com.doopp.gauss.app.AppRoutes;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.app.handle.HelloHandle;
 import com.doopp.gauss.server.util.IdWorker;
@@ -16,6 +17,7 @@ public class ApplicationModule extends AbstractModule {
 	public void configure() {
 		// bind(AccountService.class).to(AccountServiceImpl.class).in(Scopes.SINGLETON);
 		bind(HelloHandle.class).in(Scopes.SINGLETON);
+		bind(AppRoutes.class).in(Scopes.SINGLETON);
 	}
 
 	@Singleton
