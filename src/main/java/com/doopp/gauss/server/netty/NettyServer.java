@@ -20,6 +20,7 @@ public class NettyServer {
                 .bind()
                 .block();
 
+        System.out.print("\n [OK] launched server http://127.0.0.1:8090/index.html" + "\n");
         disposableServer.onDispose().block();
     }
 }

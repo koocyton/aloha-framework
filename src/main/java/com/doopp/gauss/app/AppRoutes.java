@@ -1,12 +1,12 @@
 package com.doopp.gauss.app;
 
 import com.doopp.gauss.app.handle.HelloHandle;
-import com.doopp.gauss.server.util.JarToolUtil;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.netty.http.server.HttpServerRoutes;
 
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,11 +24,14 @@ public class AppRoutes {
         // logger.info("{}", getClass().getResource(""));
         // logger.info("{}", getClass().getResource("/resources"));
         // logger.info("{}", getClass().getResource("/resources/public"));
-        logger.info("{}", getClass().getResourceAsStream("/public"));
+        // logger.info("{}", getClass().getResourceAsStream("/public"));
         // logger.info("{}", getClass().getResource("/public"));
 
-        // String relativePath = JarToolUtil.getJarName().contains("jar") ? "/resources/public" : "/public";
-        Path publicPath = Paths.get(getClass().getResource("/public").toURI());
+        URI relativePath = getClass().getResource("/public").toURI();
+        if (getClass().getResource("/public").getPath().contains(".jar!")) {
+            relativePath = new URI(getClass().getResource("/public").getPath());
+        }
+        Path publicPath = Paths.get(relativePath);
 
         return routes -> routes
             .get("/hello", (req, res) -> res.sendString(
