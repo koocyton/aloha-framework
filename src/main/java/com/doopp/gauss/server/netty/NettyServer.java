@@ -4,14 +4,15 @@ import com.doopp.gauss.app.AppRoutes;
 import com.google.inject.Inject;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
-import java.net.URISyntaxException;
+
+import java.io.IOException;
 
 public class NettyServer {
 
     @Inject
     private AppRoutes appRoutes;
 
-    public void run() throws URISyntaxException {
+    public void run() throws IOException {
 
         DisposableServer disposableServer = HttpServer.create()
                 .route(appRoutes.getRoutesConsumer())

@@ -22,6 +22,17 @@ repositories {
 
 dependencies {
 
+    // spring core
+//    compile "org.springframework:spring-core:$springVersion"
+//    compile "org.springframework:spring-aop:$springVersion"
+//    compile "org.springframework:spring-context:$springVersion"
+//    compile "org.springframework:spring-context-support:$springVersion"
+//    compile "org.springframework:spring-beans:$springVersion"
+//    compile "org.springframework:spring-web:$springVersion"
+//    compile "org.springframework:spring-webmvc:$springVersion"
+//    compile "org.springframework:spring-expression:$springVersion"
+//    compile "org.springframework:spring-tx:$springVersion"
+
     // AOP
     compile ('com.google.inject:guice:4.2.2') {
         exclude group: 'com.google.guava'
