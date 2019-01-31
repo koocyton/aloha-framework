@@ -34,8 +34,8 @@ public class HelloHandle {
         return Mono.just(boy.toString());
     }
 
-    public Flux<String> hello() {
-        return Flux.just(userDao.getById().toString());
+    public Mono<User> hello() {
+        return Mono.just(userDao.getById());
     }
 
     public ByteBufFlux game(ByteBufFlux bbf) {

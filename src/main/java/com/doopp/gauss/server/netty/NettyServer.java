@@ -6,13 +6,14 @@ import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 public class NettyServer {
 
     @Inject
     private AppRoutes appRoutes;
 
-    public void run() throws IOException {
+    public void run() throws URISyntaxException {
 
         DisposableServer disposableServer = HttpServer.create()
                 .route(appRoutes.getRoutesConsumer())

@@ -1,20 +1,31 @@
 package com.doopp.gauss.app;
 
 import com.doopp.gauss.app.handle.HelloHandle;
+import com.google.common.net.MediaType;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Inject;
-import com.sun.istack.internal.NotNull;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+import reactor.netty.NettyOutbound;
+import reactor.netty.http.server.HttpServerRequest;
+import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.HttpServerRoutes;
 
-import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 public class AppRoutes {
@@ -24,56 +35,41 @@ public class AppRoutes {
     @Inject
     private HelloHandle helloHandle;
 
-    public Consumer<HttpServerRoutes> getRoutesConsumer() throws IOException {
+    @Inject
+    private Gson gson;
+
+    public Consumer<HttpServerRoutes> getRoutesConsumer() throws URISyntaxException {
 
         // logger.info("{}", getClass().getResource(""));
         // logger.info("{}", getClass().getResource("/resources"));
         // logger.info("{}", getClass().getResource("/resources/public"));
         // logger.info("{}", getClass().getResourceAsStream("/public"));
         // logger.info("{}", getClass().getResource("/public"));
-        logger.info("{}", resolveContentPath());
 
-        Path contentPath = resolveContentPath();
+        Path publicPath = Paths.get(getClass().getResource("/public").toURI());
 
-        return routes -> routes
-                .get("/**", (req, res) -> res.sendString(
-                        helloHandle.hello()
+        return routes -> {
+            routes
+                // .get("/**", sendJson(helloHandle.hello()))
+                .get("/hello", (req, res) -> sendJson(
+                        res, helloHandle.boy(1L)
                 ))
-                .get("/hello", (req, res) -> res.sendString(
-                        helloHandle.hello()
-                ))
-            .get("/boy/{id}", (req, res) -> res.sendString(
-                helloHandle.boy(Long.valueOf(req.param("id")))
-            ))
-            .ws("/game", (in, out) -> out.send(
-                helloHandle.game(in.receive())
-            ))
-            .directory("/", contentPath);
+                .get("/boy/{id}", (req, res) -> res.sendString(
+                    helloHandle.boy(Long.valueOf(req.param("id")))
+                ));
+        };
+//            .ws("/game", (in, out) -> out.send(
+//                helloHandle.game(in.receive())
+//            ))
+//            .directory("/", publicPath);
     }
 
-    private Path resolveContentPath() throws IOException {
-        URI cp = null;
-
-        try {
-            cp = getClass().getResource("/public").toURI();
-            logger.info("{}", cp);
-        }
-        catch (Exception e) {
-            logger.info("{}", cp);
-        }
-
-        if (cp!=null) {
-            return Paths.get(cp);
-        }
-        FileSystem fs = FileSystems.newFileSystem(cp, Collections.emptyMap());
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try{
-                fs.close();
-            }
-            catch (IOException io){
-                //ignore
-            }
-        }));
-        return fs.getPath("/public");
+    private NettyOutbound sendJson(HttpServerResponse res, Mono<String> handle) {
+        return res
+            .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+            .status(HttpResponseStatus.OK)
+            .sendString(handle);
     }
+
+
 }

@@ -4,6 +4,9 @@ import com.doopp.gauss.app.AppRoutes;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.app.handle.HelloHandle;
 import com.doopp.gauss.server.util.IdWorker;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.LongSerializationPolicy;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
@@ -35,6 +38,16 @@ public class ApplicationModule extends AbstractModule {
 	@Provides
 	public EventLoopGroup eventLoopGroup() {
 		return new NioEventLoopGroup();
+	}
+
+	@Singleton
+	@Provides
+	public Gson gson () {
+		return new GsonBuilder()
+			.serializeNulls()
+			.setDateFormat("yyyy-MM-dd HH:mm:ss")
+			.setLongSerializationPolicy(LongSerializationPolicy.STRING)
+			.create();
 	}
 
 //	@Singleton
