@@ -4,6 +4,8 @@ import com.doopp.gauss.app.dao.UserDao;
 import com.doopp.gauss.app.entity.User;
 import com.doopp.gauss.server.redis.CustomShadedJedis;
 import com.google.inject.Inject;
+import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -21,7 +23,7 @@ public class HelloHandle {
 
     private final static Logger logger = LoggerFactory.getLogger(HelloHandle.class);
 
-    public Mono<String> boy(HttpServerRequest request) {
+    public Mono<String> boy(Long userId) {
         User boy = sessionRedis.get("boy99".getBytes(), User.class);
         if (boy==null) {
             logger.info("1 : {}", boy);
@@ -36,8 +38,9 @@ public class HelloHandle {
         return Flux.just(userDao.getById().toString());
     }
 
-    public ByteBufFlux  game(ByteBufFlux bbf) {
+    public ByteBufFlux game(ByteBufFlux bbf) {
         logger.info("2 : {}", bbf);
-        return ByteBufFlux.fromInbound(bbf);
+        Publisher<User> pu = subscriber -> subscriber.onComplete();
+        return ByteBufFlux.fromInbound(pu);
     }
 }

@@ -2,6 +2,7 @@ package com.doopp.gauss.app;
 
 import com.doopp.gauss.app.handle.HelloHandle;
 import com.google.inject.Inject;
+import com.sun.istack.internal.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.netty.http.server.HttpServerRoutes;
@@ -35,11 +36,14 @@ public class AppRoutes {
         Path contentPath = resolveContentPath();
 
         return routes -> routes
-            .get("/hello", (req, res) -> res.sendString(
-                helloHandle.hello()
-            ))
-            .get("/boy", (req, res) -> res.sendString(
-                helloHandle.boy(req)
+                .get("/**", (req, res) -> res.sendString(
+                        helloHandle.hello()
+                ))
+                .get("/hello", (req, res) -> res.sendString(
+                        helloHandle.hello()
+                ))
+            .get("/boy/{id}", (req, res) -> res.sendString(
+                helloHandle.boy(Long.valueOf(req.param("id")))
             ))
             .ws("/game", (in, out) -> out.send(
                 helloHandle.game(in.receive())
