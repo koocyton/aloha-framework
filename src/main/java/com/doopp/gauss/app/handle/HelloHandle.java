@@ -23,19 +23,10 @@ public class HelloHandle {
 
     private final static Logger logger = LoggerFactory.getLogger(HelloHandle.class);
 
-    public Mono<String> boy(Long userId) {
-        User boy = sessionRedis.get("boy99".getBytes(), User.class);
-        if (boy==null) {
-            logger.info("1 : {}", boy);
-            boy = userDao.getById();
-            sessionRedis.set("boy99".getBytes(), boy);
-        }
-        logger.info("2 : {}", boy);
-        return Mono.just(boy.toString());
-    }
-
-    public Mono<User> hello() {
-        return Mono.just(userDao.getById());
+    public Mono<String> hello(Long id) {
+        User user = userDao.getById(id);
+        logger.info("2 : {}", user);
+        return Mono.just(user.toString());
     }
 
     public ByteBufFlux game(ByteBufFlux bbf) {

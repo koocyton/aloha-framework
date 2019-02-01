@@ -1,11 +1,11 @@
 package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.app.AppRoutes;
+import com.doopp.gauss.app.handle.HelloHandle;
 import com.google.inject.Inject;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
 
 public class NettyServer {
@@ -23,7 +23,10 @@ public class NettyServer {
                 .block();
 
         System.out.print("\n [OK] launched server http://127.0.0.1:8090/index.html" + "\n");
-        disposableServer.onDispose().block();
+
+        disposableServer
+                .onDispose()
+                .block();
     }
 }
 

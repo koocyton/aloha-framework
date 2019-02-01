@@ -12,7 +12,8 @@ public interface UserDao {
     @Select("<script>" +
         "SELECT *" +
         "FROM oauth_user " +
+        "WHERE `id`=#{id} " +
         "Limit 1 "+
         "</script>")
-    User getById();
+    User getById(Long id);
 }

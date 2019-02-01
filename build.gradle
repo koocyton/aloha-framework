@@ -53,7 +53,7 @@ dependencies {
     compile 'com.google.code.gson:gson:2.8.5'
 
     // database
-    compile 'mysql:mysql-connector-java:8.0.14'
+    compile 'mysql:mysql-connector-java:6.0.6'
     compile 'com.zaxxer:HikariCP:3.3.0'
     compile 'org.mybatis:mybatis:3.5.0'
     compile 'org.mybatis:mybatis-guice:3.10'
