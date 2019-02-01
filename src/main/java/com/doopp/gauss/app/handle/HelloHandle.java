@@ -23,10 +23,9 @@ public class HelloHandle {
 
     private final static Logger logger = LoggerFactory.getLogger(HelloHandle.class);
 
-    public Mono<String> hello(Long id) {
+    public User hello(Long id) {
         User user = userDao.getById(id);
-        logger.info("2 : {}", user);
-        return Mono.just(user.toString());
+        return user;
     }
 
     public ByteBufFlux game(ByteBufFlux bbf) {
