@@ -13,7 +13,7 @@ public class NettyServer {
     @Inject
     private AppRoutes appRoutes;
 
-    public void run() throws URISyntaxException {
+    public void run() throws URISyntaxException, NoSuchMethodException {
 
         DisposableServer disposableServer = HttpServer.create()
                 .route(appRoutes.getRoutesConsumer())
