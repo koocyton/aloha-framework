@@ -13,6 +13,9 @@ import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufFlux;
 import reactor.netty.http.server.HttpServerRequest;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+
 public class HelloHandle {
 
     @Inject
@@ -23,6 +26,8 @@ public class HelloHandle {
 
     private final static Logger logger = LoggerFactory.getLogger(HelloHandle.class);
 
+    @GET
+    @Path("/liso/bad")
     public User hello(Long id) {
         User user = userDao.getById(id);
         return user;
