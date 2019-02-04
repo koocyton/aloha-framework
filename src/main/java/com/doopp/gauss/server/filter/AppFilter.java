@@ -1,16 +1,16 @@
-package com.doopp.gauss.app.filter;
+package com.doopp.gauss.server.filter;
 
 import com.doopp.gauss.app.defined.CommonError;
 import com.doopp.gauss.app.defined.CommonField;
 import com.doopp.gauss.app.entity.User;
 import com.doopp.gauss.app.exception.CommonException;
 import com.doopp.gauss.app.service.UserService;
+import com.doopp.gauss.server.resource.RequestAttribute;
 import com.google.inject.Inject;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +29,9 @@ public class AppFilter {
 
     @Inject
     private UserService userService;
+
+    @Inject
+    private RequestAttribute requestAttribute;
 
     public boolean doFilter(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
 
@@ -62,16 +65,15 @@ public class AppFilter {
                     String sessionKey = ((Cookie) cookies).value();
                     User user = userService.getUserByToken(sessionKey);
                     // 如果能找到用户
-                    //if (user != null) {
-                        //httpRequest.receiveContent().
-                        //ctx.channel().attr(AttributeKey.valueOf("currentUser")).set(user);
-                    //    return true;
-                    //}
+                    if (user != null) {
+                        requestAttribute.setAttribute(CommonField.CURRENT_USER, user);
+                        return true;
+                    }
                     // 如果不能找到用户
-                    //else {
+                    else {
                         filterException = new CommonException(CommonError.ACCOUNT_NO_EXIST);
-                    //    return false;
-                    //}
+                        return false;
+                    }
                 }
                 // 如果 token 不对
                 else {

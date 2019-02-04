@@ -1,6 +1,7 @@
 package com.doopp.gauss.server.module;
 
 import com.doopp.gauss.app.AppRoutes;
+import com.doopp.gauss.server.resource.RequestAttribute;
 import com.doopp.gauss.app.service.UserService;
 import com.doopp.gauss.app.service.impl.UserServiceImpl;
 import com.doopp.gauss.server.application.ApplicationProperties;
@@ -20,6 +21,8 @@ public class ApplicationModule extends AbstractModule {
 		bind(UserService.class).to(UserServiceImpl.class).in(Scopes.SINGLETON);
 		bind(HelloHandle.class).in(Scopes.SINGLETON);
 		bind(AppRoutes.class).in(Scopes.SINGLETON);
+		// 不能修改其作用域
+		bind(RequestAttribute.class).in(Scopes.NO_SCOPE);
 	}
 
 	@Singleton
