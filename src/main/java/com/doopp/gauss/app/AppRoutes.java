@@ -40,22 +40,19 @@ public class AppRoutes {
         // Path publicPath = this.getPublicPath();
 
         return routes -> routes
-                .get("/index.html", (req, resp) -> {
-                    resp.withConnection(connection -> {
-                        connection.addHandlerLast(new StaticFileResourceHandler());
-                    });
-                    return resp.status(HttpResponseStatus.ACCEPTED);
-                })
                 .get("/user/{id}", (req, resp) -> {
                     Long id = Long.valueOf(req.param("id"));
                     return sendJson(req, resp, helloHandle.hello(id));
                 })
                 .ws("/game", (in, out) -> out.send(
                     helloHandle.game(in.receive())
-                ));
+                ))
+                .get("/**", (req, resp) -> {
+                    return sendStaticFile(resp);
+                });
     }
 
-    private Path getPublicPath() throws URISyntaxException {
+    private HttpServerResponse sendStaticFile(HttpServerResponse resp) throws URISyntaxException {
         //logger.info("{}", getClass().getResourceAsStream("/public"));
         InputStream publicIs = AppRoutes.class.getResourceAsStream("/public");
         URL publicUrl = AppRoutes.class.getResource("/public");

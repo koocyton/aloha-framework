@@ -33,7 +33,7 @@ dependencies {
 //    compile "org.springframework:spring-expression:$springVersion"
 //    compile "org.springframework:spring-tx:$springVersion"
 
-    compile 'javax.ws.rs:javax.ws.rs-api:2.1.1'
+    // compile 'javax.ws.rs:javax.ws.rs-api:2.1.1'
 
     // AOP
     compile ('com.google.inject:guice:4.2.2') {
