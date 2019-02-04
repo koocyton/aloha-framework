@@ -1,11 +1,8 @@
 package com.doopp.gauss.server.resource;
 
-import com.google.inject.Singleton;
-
 import java.util.HashMap;
 import java.util.Map;
 
-@Singleton
 public class RequestAttribute {
 
     private Map<String, Object> attributes = new HashMap<>();

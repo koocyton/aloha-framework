@@ -6,4 +6,6 @@ public interface UserService {
 
     User getUserByToken(String token);
 
+    User getUserById(Long id);
+
 }

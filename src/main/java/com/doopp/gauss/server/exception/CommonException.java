@@ -1,4 +1,4 @@
-package com.doopp.gauss.app.exception;
+package com.doopp.gauss.server.exception;
 
 import com.doopp.gauss.app.defined.CommonError;
 

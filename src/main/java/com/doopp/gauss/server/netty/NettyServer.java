@@ -1,7 +1,5 @@
 package com.doopp.gauss.server.netty;
 
-import com.doopp.gauss.app.AppRoutes;
-import com.doopp.gauss.app.handle.HelloHandle;
 import com.google.inject.Inject;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;

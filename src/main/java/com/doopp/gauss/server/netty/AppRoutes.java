@@ -1,8 +1,9 @@
-package com.doopp.gauss.app;
+package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.app.handle.HelloHandle;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
+import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -39,6 +40,9 @@ public class AppRoutes {
     @Inject
     private AppFilter appFilter;
 
+    @Inject
+    private Injector injector;
+
     public Consumer<HttpServerRoutes> getRoutesConsumer() {
 
         return routes -> routes
@@ -53,6 +57,9 @@ public class AppRoutes {
     }
 
     private NettyOutbound sendStaticFile(HttpServerRequest req, HttpServerResponse resp) {
+        if (!appFilter.doFilter(req, resp, injector)) {
+            return appFilter.sendFilterException(resp);
+        }
         String requestUri = (req.uri().equals("/") || req.uri().equals("")) ? "/index.html" : req.uri();
         URL fileUrl = AppRoutes.class.getResource("/public" + requestUri);
         if (fileUrl==null) {
@@ -87,6 +94,9 @@ public class AppRoutes {
     }
 
     private <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
+        if (!appFilter.doFilter(req, resp, injector)) {
+            return appFilter.sendFilterException(resp);
+        }
         Mono<String> monoJson = Mono.just(gson.toJson(handle));
         return resp
                 .status(HttpResponseStatus.OK)
