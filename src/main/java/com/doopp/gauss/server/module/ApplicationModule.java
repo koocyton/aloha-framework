@@ -1,16 +1,15 @@
 package com.doopp.gauss.server.module;
 
 import com.doopp.gauss.app.AppRoutes;
+import com.doopp.gauss.app.service.UserService;
+import com.doopp.gauss.app.service.impl.UserServiceImpl;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.app.handle.HelloHandle;
 import com.doopp.gauss.server.util.IdWorker;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
-import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
-import com.google.inject.Scopes;
-import com.google.inject.Singleton;
+import com.google.inject.*;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
@@ -18,7 +17,7 @@ public class ApplicationModule extends AbstractModule {
 
 	@Override
 	public void configure() {
-		// bind(AccountService.class).to(AccountServiceImpl.class).in(Scopes.SINGLETON);
+		bind(UserService.class).to(UserServiceImpl.class).in(Scopes.SINGLETON);
 		bind(HelloHandle.class).in(Scopes.SINGLETON);
 		bind(AppRoutes.class).in(Scopes.SINGLETON);
 	}
