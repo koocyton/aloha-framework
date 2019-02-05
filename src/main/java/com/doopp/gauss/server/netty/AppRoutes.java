@@ -22,6 +22,18 @@ public class AppRoutes {
         AppFilter appFilter = new AppFilter();
 
         return routes -> routes
+                .get("/test", (req, resp) -> {
+                    return AppFilter.INSTANCE
+                            .doFilter2((request, response) -> {
+                               return customOutbound.sendJson(
+                                       req, resp, injector.getInstance(HelloHandle.class).hello(1L)
+                               );
+                            })
+                            .unFilter2((request, response) -> {
+                                return customOutbound.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
+                            })
+                            .send();
+                })
                 .get("/user/{id}", (req, resp) -> {
                     if (!appFilter.doFilter(req, resp, injector)) {
                         return customOutbound.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
