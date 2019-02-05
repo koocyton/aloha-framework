@@ -1,40 +1,51 @@
 package com.doopp.gauss.server;
 
-import com.doopp.gauss.server.application.ApplicationProperties;
-import com.doopp.gauss.app.dao.UserDao;
-import com.doopp.gauss.server.database.HikariDataSourceProvider;
 import com.doopp.gauss.server.module.ApplicationModule;
+import com.doopp.gauss.server.module.CustomMyBatisModule;
 import com.doopp.gauss.server.module.RedisModule;
-import com.doopp.gauss.server.netty.NettyServer;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.name.Names;
-import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
-import org.mybatis.guice.MyBatisModule;
-import org.mybatis.guice.datasource.helper.JdbcHelper;
+import reactor.netty.DisposableServer;
+import reactor.netty.http.server.HttpServer;
+import reactor.netty.http.server.HttpServerRoutes;
+
+import java.util.function.Consumer;
 
 public class KTApplication {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception, NullPointerException {
+
         System.setProperty("applicationPropertiesConfig", args[0]);
+
         Injector injector = Guice.createInjector(
-                new myBatisModule(),
+                new CustomMyBatisModule(),
                 new RedisModule(),
                 new ApplicationModule()
         );
-        final NettyServer server = injector.getInstance(NettyServer.class);
-        server.run();
+
+        DisposableServer disposableServer = HttpServer.create()
+                .route(new routes(injector))
+                .host("127.0.0.1")
+                .port(8090)
+                .bind()
+                .block();
+
+        System.out.print("\n [OK] launched server http://127.0.0.1:8090/index.html" + "\n");
+
+        disposableServer.onDispose().block();
     }
 
-    private static class myBatisModule extends MyBatisModule {
+    private static class routes implements Consumer<HttpServerRoutes> {
+
+        private Injector injector;
+
+        routes (Injector injector) {
+            this.injector = injector;
+        }
+
         @Override
-        protected void initialize() {
-            install(JdbcHelper.MySQL);
-            bindDataSourceProviderType(HikariDataSourceProvider.class);
-            // bindDataSourceProviderType(DruidDataSourceProvider.class);
-            bindTransactionFactoryType(JdbcTransactionFactory.class);
-            addMapperClass(UserDao.class);
-            Names.bindProperties(binder(), new ApplicationProperties());
+        public void accept(HttpServerRoutes httpServerRoutes) {
+
         }
     }
 }

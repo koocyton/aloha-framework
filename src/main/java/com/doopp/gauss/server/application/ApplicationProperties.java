@@ -5,7 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
 
-public class ApplicationProperties extends Properties {
+public class  ApplicationProperties extends Properties {
 
     public ApplicationProperties() {
         String propertiesConfig = System.getProperty("applicationPropertiesConfig");
