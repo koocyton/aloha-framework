@@ -3,13 +3,11 @@ package com.doopp.gauss.server;
 import com.doopp.gauss.server.module.ApplicationModule;
 import com.doopp.gauss.server.module.CustomMyBatisModule;
 import com.doopp.gauss.server.module.RedisModule;
+import com.doopp.gauss.server.netty.AppRoutes;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
-import reactor.netty.http.server.HttpServerRoutes;
-
-import java.util.function.Consumer;
 
 public class KTApplication {
 
@@ -24,7 +22,7 @@ public class KTApplication {
         );
 
         DisposableServer disposableServer = HttpServer.create()
-                .route(new routes(injector))
+                .route(new AppRoutes().getRoutesConsumer(injector))
                 .host("127.0.0.1")
                 .port(8090)
                 .bind()
@@ -33,19 +31,5 @@ public class KTApplication {
         System.out.print("\n [OK] launched server http://127.0.0.1:8090/index.html" + "\n");
 
         disposableServer.onDispose().block();
-    }
-
-    private static class routes implements Consumer<HttpServerRoutes> {
-
-        private Injector injector;
-
-        routes (Injector injector) {
-            this.injector = injector;
-        }
-
-        @Override
-        public void accept(HttpServerRoutes httpServerRoutes) {
-
-        }
     }
 }

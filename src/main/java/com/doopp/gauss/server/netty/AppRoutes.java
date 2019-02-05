@@ -1,8 +1,5 @@
 package com.doopp.gauss.server.netty;
 
-import com.doopp.gauss.app.handle.HelloHandle;
-import com.google.gson.Gson;
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -17,7 +14,6 @@ import reactor.netty.NettyOutbound;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.HttpServerRoutes;
-import com.doopp.gauss.server.filter.AppFilter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,21 +27,10 @@ public class AppRoutes {
 
     private final static Logger logger = LoggerFactory.getLogger(AppRoutes.class);
 
-    @Inject
-    private HelloHandle helloHandle;
+    public Consumer<HttpServerRoutes> getRoutesConsumer(Injector injector) {
 
-    @Inject
-    private Gson gson;
-
-    @Inject
-    private AppFilter appFilter;
-
-    @Inject
-    private Injector injector;
-
-    public Consumer<HttpServerRoutes> getRoutesConsumer() {
-
-        return routes -> routes
+        return routes -> {
+            return routes
                 .get("/user/{id}", (req, resp) -> {
                     Long id = Long.valueOf(req.param("id"));
                     return sendJson(req, resp, helloHandle.hello(id));
@@ -53,7 +38,7 @@ public class AppRoutes {
                 .ws("/game", (in, out) -> out.send(
                     helloHandle.game(in.receive())
                 ))
-                .get("/**", this::sendStaticFile);
+                .get("/**", this::sendStaticFile)};
     }
 
     private NettyOutbound sendStaticFile(HttpServerRequest req, HttpServerResponse resp) {
