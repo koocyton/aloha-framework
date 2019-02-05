@@ -1,5 +1,6 @@
 package com.doopp.gauss.server;
 
+import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.module.ApplicationModule;
 import com.doopp.gauss.server.module.CustomMyBatisModule;
 import com.doopp.gauss.server.module.RedisModule;
@@ -11,24 +12,27 @@ import reactor.netty.http.server.HttpServer;
 
 public class KTApplication {
 
-    public static void main(String[] args) throws Exception, NullPointerException {
+    public static void main(String[] args) {
 
         System.setProperty("applicationPropertiesConfig", args[0]);
 
         Injector injector = Guice.createInjector(
-                new CustomMyBatisModule(),
-                new RedisModule(),
-                new ApplicationModule()
+            new CustomMyBatisModule(),
+            new RedisModule(),
+            new ApplicationModule()
         );
 
+        ApplicationProperties applicationProperties = injector.getInstance(ApplicationProperties.class);
+        String host = applicationProperties.s("server.host");
+        int port = applicationProperties.i("server.port");
         DisposableServer disposableServer = HttpServer.create()
                 .route(new AppRoutes().getRoutesConsumer(injector))
-                .host("127.0.0.1")
-                .port(8090)
+                .host(host)
+                .port(port)
                 .bind()
                 .block();
 
-        System.out.print("\n [OK] launched server http://127.0.0.1:8090/index.html" + "\n");
+        System.out.printf("\n Launched server http://%s:%d/index.html", host, port);
 
         disposableServer.onDispose().block();
     }

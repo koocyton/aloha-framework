@@ -20,7 +20,7 @@ public class ApplicationModule extends AbstractModule {
 	public void configure() {
 		bind(UserService.class).to(UserServiceImpl.class).in(Scopes.SINGLETON);
 		bind(HelloHandle.class).in(Scopes.SINGLETON);
-		bind(AppRoutes.class).in(Scopes.SINGLETON);
+		// bind(AppRoutes.class).in(Scopes.SINGLETON);
 		// 不能单例
 		bind(RequestAttribute.class).in(Scopes.NO_SCOPE);
 	}

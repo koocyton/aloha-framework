@@ -1,5 +1,7 @@
 package com.doopp.gauss.server.netty;
 
+import com.doopp.gauss.app.handle.HelloHandle;
+import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -29,22 +31,25 @@ public class AppRoutes {
 
     public Consumer<HttpServerRoutes> getRoutesConsumer(Injector injector) {
 
-        return routes -> {
-            return routes
-                .get("/user/{id}", (req, resp) -> {
-                    Long id = Long.valueOf(req.param("id"));
-                    return sendJson(req, resp, helloHandle.hello(id));
-                })
-                .ws("/game", (in, out) -> out.send(
-                    helloHandle.game(in.receive())
-                ))
-                .get("/**", this::sendStaticFile)};
+        return routes -> routes
+            .get("/user/{id}", (req, resp) -> {
+                System.out.print("\n" + req.receiveContent().buffer());
+                // logger.info("{}", req);
+                Long id = Long.valueOf(req.param("id"));
+                return sendJson(
+                    req, resp, injector.getInstance(HelloHandle.class).hello(id)
+                );
+            })
+            .ws("/game", (in, out) -> {
+                return out.send(
+                    injector.getInstance(HelloHandle.class).game(in.receive()));
+            })
+            .get("/**",
+                    this::sendStaticFile
+            );
     }
 
     private NettyOutbound sendStaticFile(HttpServerRequest req, HttpServerResponse resp) {
-        if (!appFilter.doFilter(req, resp, injector)) {
-            return appFilter.sendFilterException(resp);
-        }
         String requestUri = (req.uri().equals("/") || req.uri().equals("")) ? "/index.html" : req.uri();
         URL fileUrl = AppRoutes.class.getResource("/public" + requestUri);
         if (fileUrl==null) {
@@ -79,10 +84,7 @@ public class AppRoutes {
     }
 
     private <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
-        if (!appFilter.doFilter(req, resp, injector)) {
-            return appFilter.sendFilterException(resp);
-        }
-        Mono<String> monoJson = Mono.just(gson.toJson(handle));
+        Mono<String> monoJson = Mono.just(new GsonBuilder().create().toJson(handle));
         return resp
                 .status(HttpResponseStatus.OK)
                 .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
