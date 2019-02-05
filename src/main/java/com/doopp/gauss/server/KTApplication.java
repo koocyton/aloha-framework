@@ -25,6 +25,7 @@ public class KTApplication {
         ApplicationProperties applicationProperties = injector.getInstance(ApplicationProperties.class);
         String host = applicationProperties.s("server.host");
         int port = applicationProperties.i("server.port");
+
         DisposableServer disposableServer = HttpServer.create()
                 .route(new AppRoutes().getRoutesConsumer(injector))
                 .host(host)
@@ -32,7 +33,7 @@ public class KTApplication {
                 .bind()
                 .block();
 
-        System.out.printf("\n Launched server http://%s:%d/index.html", host, port);
+        System.out.printf("\nLaunched server http://%s:%d/index.html\n\n", host, port);
 
         disposableServer.onDispose().block();
     }
