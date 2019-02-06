@@ -1,4 +1,4 @@
-package com.doopp.gauss.server.filter;
+package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.app.defined.CommonField;
 import com.doopp.gauss.app.entity.User;
@@ -6,46 +6,33 @@ import com.doopp.gauss.app.service.UserService;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.google.inject.Injector;
 import io.netty.handler.codec.http.cookie.Cookie;
-import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import reactor.netty.NettyOutbound;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import java.net.URI;
 import java.util.Set;
-import java.util.function.BiFunction;
 
-@Mapper
 public class AppFilter {
 
-    public final static AppFilter INSTANCE = new AppFilter();
+    private Injector injector;
 
-    private static Logger logger = LoggerFactory.getLogger(AppFilter.class);
+    public AppFilter(Injector injector) {
 
-    public AppFilter doFilter2(BiFunction<? super HttpServerRequest, ? super HttpServerResponse, ? extends Publisher<Void>> handler) {
-        return this;
+        this.injector = injector;
     }
 
-    public AppFilter unFilter2(BiFunction<? super HttpServerRequest, ? super HttpServerResponse, ? extends Publisher<Void>> handler) {
-        return this;
-    }
-
-    public NettyOutbound send() {
-        return null;
-    }
-
-    public boolean doFilter(HttpServerRequest httpRequest, HttpServerResponse httpResponse, Injector injector) {
+    boolean doFilter(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
 
         String uri = URI.create(httpRequest.uri()).getPath();
 
         // 不过滤的uri
         String[] notFilters = new String[]{
-                "/websocket.html",
+                "/game.html",
                 "/index.html",
                 "/favicon.ico",
+                "/css",
+                "/js",
+                "/bootstrap",
+                "/tpl",
                 "/user",
         };
 

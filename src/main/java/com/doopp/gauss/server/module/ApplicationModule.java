@@ -1,6 +1,5 @@
 package com.doopp.gauss.server.module;
 
-import com.doopp.gauss.server.netty.AppRoutes;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.doopp.gauss.app.service.UserService;
 import com.doopp.gauss.app.service.impl.UserServiceImpl;

@@ -1,10 +1,12 @@
 package com.doopp.gauss.server;
 
 import com.doopp.gauss.server.application.ApplicationProperties;
+import com.doopp.gauss.server.netty.AppFilter;
 import com.doopp.gauss.server.module.ApplicationModule;
 import com.doopp.gauss.server.module.CustomMyBatisModule;
 import com.doopp.gauss.server.module.RedisModule;
-import com.doopp.gauss.server.netty.AppRoutes;
+import com.doopp.gauss.server.netty.AppRoute;
+import com.doopp.gauss.server.netty.AppOutbound;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import reactor.netty.DisposableServer;
@@ -26,8 +28,12 @@ public class KTApplication {
         String host = applicationProperties.s("server.host");
         int port = applicationProperties.i("server.port");
 
+        AppRoute appRoutes = new AppRoute(
+            new AppOutbound(new AppFilter(injector))
+        );
+
         DisposableServer disposableServer = HttpServer.create()
-                .route(new AppRoutes().getRoutesConsumer(injector))
+                .route(appRoutes.getRoutesConsumer(injector))
                 .host(host)
                 .port(port)
                 .bind()

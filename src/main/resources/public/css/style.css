@@ -1,0 +1,94 @@
+body{overflow:hidden;}
+label{font-weight:normal;}
+input,button,button:focus,button:active,button:visited,a:focus,a:active{outline:none;}
+
+body .container{width:100%;}
+.blur-10 {-webkit-filter:blur(10px); -moz-filter:blur(10px); -ms-filter:blur(10px); filter:blur(10px);}
+
+/* 背景图 */
+.body-background {height:120%;width:120%;top:-10%;left:-10%;position:absolute; background:rgba(0,0,0,0) url(bg.jpg) no-repeat scroll 0 0 / cover; z-index:-1;}
+.opacity-82 {opacity:0.82;-moz-opacity:0.82;}
+.opacity-92 {opacity:0.92;-moz-opacity:0.92;}
+
+/* 导航的菜单 */
+.navbar>.container{width:100%;}
+body>.navbar {border-radius:0;background-color:rgba(10,10,10,0.78);}
+
+/* 正文部分 和 左右内容 */
+.body-content {position:absolute;width:100%;height:100%;top:50px;left:0;}
+.body-content-left, .body-content-right {float:left;display:inline-block;background:#ffffff no-repeat scroll 0 0 / cover;}
+.body-content-left {width:20%;height:calc(100% - 50px);padding:3px 0 0 0;}
+.body-content-right {width:80%;height:calc(100% - 50px);padding:20px 0 0 0;}
+.body-content>.scroll-container{overflow-x:hidden;overflow-y:scroll;}
+
+.robot-hall {}
+.robot-hall ul {list-style: outside none none;}
+.robot-hall ul li {border: 2px solid #ddd;float: left;font-size: 20px;height: 468px;width: 468px;padding: 0px 0 15px 0;text-align: center; margin: 0 15px 15px 0;}
+
+a.tree-menu {width:100%;display:block;color:#333;cursor:pointer;text-decoration:none}
+a.tree-menu>div {position:relative;text-align:left;height:25px;line-height:25px;font-size:12px;overflow:hidden;}
+a.tree-menu>div:hover{background-color:#eee}
+a.tree-menu>div>span.glyphicon{float:right;margin:5px 23px;font-size:13px;display:none;}
+a.tree-menu>div:hover>span.glyphicon{display:inline;}
+a.tree-select-menu>div{background-color:#ddd;}
+a.tree-select-menu>div:hover{background-color:#ddd;}
+a.tree-select-menu>div>span.glyphicon{display:inline;}
+a.tree-menu-0>div{font-weight:bold;height:25px;line-height:25px;padding:0 0 0 10px;border-bottom:1px solid #ccc}
+a.tree-menu-1>div{padding:0 0 0 40px}
+a.tree-menu-2>div{padding:0 0 0 70px}
+a.tree-menu-close>div, a.tree-menu-open>div{background-repeat:no-repeat;background-position:27px 8px;}
+a.tree-menu-close>div{background-image: url("button_right.gif");}
+a.tree-menu-open>div{background-image: url("button_down.gif");}
+
+a.game-list {width:100%;display:block;color:#333;cursor:pointer;text-decoration:none}
+a.game-list>div{font-weight:bold;height:150px;line-height:150px;padding:0 0 0 10px;border-bottom:1px solid #ccc}
+/*
+ * Glyphicons
+ *
+ * Special styles for displaying the icons and their classes in the docs.
+ */
+
+.bs-glyphicons {
+    margin: 0 -10px 20px;
+    overflow: hidden;
+}
+.bs-glyphicons-list {
+    padding-left: 0;
+    list-style: none;
+}
+.bs-glyphicons li {
+    float: left;
+    width: 25%;
+    height: 115px;
+    padding: 10px;
+    font-size: 10px;
+    line-height: 1.4;
+    text-align: center;
+    background-color: #f9f9f9;
+    border: 1px solid #fff;
+}
+.bs-glyphicons .glyphicon {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    font-size: 24px;
+}
+.bs-glyphicons .glyphicon-class {
+    display: block;
+    text-align: center;
+    word-wrap: break-word; /* Help out IE10+ with class names */
+}
+.bs-glyphicons li:hover {
+    color: #fff;
+    background-color: #563d7c;
+}
+
+@media (min-width: 768px) {
+    .bs-glyphicons {
+        margin-right: 0;
+        margin-left: 0;
+    }
+    .bs-glyphicons li {
+        width: 12.5%;
+        font-size: 12px;
+    }
+}

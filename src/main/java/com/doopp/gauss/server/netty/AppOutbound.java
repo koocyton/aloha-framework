@@ -1,10 +1,10 @@
 package com.doopp.gauss.server.netty;
 
+import com.doopp.gauss.app.defined.CommonError;
 import com.doopp.gauss.server.exception.CommonException;
 import com.doopp.gauss.server.message.CommonResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.LongSerializationPolicy;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -28,31 +28,22 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
-class CustomOutbound {
+public class AppOutbound {
 
-    public NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
-        CommonResponse<Object> commonResponse = new CommonResponse<>(null);
-        commonResponse.setErr_code(commonException.getCode());
-        commonResponse.setErr_msg(commonException.getMessage());
-        String monoJson = new Gson().toJson(commonResponse);
-        return resp
-                .status(commonException.getCode())
-                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString(Mono.just(monoJson));
+    private AppFilter appFilter;
+
+    public AppOutbound(AppFilter appFilter) {
+        this.appFilter = appFilter;
     }
 
-    public NettyOutbound sendNotFoundPage(HttpServerResponse resp, CommonException commonException) {
-        return resp
-                .status(HttpResponseStatus.NOT_FOUND)
-                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN)
-                .sendString(Mono.just("resource not found"));
-    }
-
-    public Publisher<Void> sendWs(WebsocketInbound in, WebsocketOutbound out, Publisher<ByteBuf> handle) {
+    Publisher<Void> sendWs(WebsocketInbound in, WebsocketOutbound out, Publisher<ByteBuf> handle) {
         return out.send(handle);
     }
 
-    public <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
+    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
+        if (!this.appFilter.doFilter(req, resp)) {
+            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
+        }
         Mono<String> monoJson = Mono.just(new GsonBuilder().create().toJson(handle));
         return resp
                 .status(HttpResponseStatus.OK)
@@ -60,13 +51,18 @@ class CustomOutbound {
                 .sendString(monoJson);
     }
 
-    public NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
+    NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
+        if (!this.appFilter.doFilter(req, resp)) {
+            return this.sendNotFoundPage(resp, new CommonException(CommonError.WRONG_SESSION));
+        }
         String requestUri = (req.uri().equals("/") || req.uri().equals("")) ? "/index.html" : req.uri();
         String requirePath = "/public" + requestUri;
-        URL fileUrl = AppRoutes.class.getResource(requirePath);
+
+        URL fileUrl = this.getClass().getResource(requirePath);
         if (fileUrl==null) {
             return resp.status(HttpResponseStatus.NOT_FOUND);
         }
+
         if (!fileUrl.toString().contains(".jar!")) {
             try {
                 Path filePath = Paths.get(fileUrl.toURI());
@@ -79,7 +75,7 @@ class CustomOutbound {
             }
         }
 
-        try (InputStream fileIs = AppRoutes.class.getResourceAsStream(requirePath)) {
+        try (InputStream fileIs = this.getClass().getResourceAsStream(requirePath)) {
             if (fileIs==null) {
                 return resp.status(HttpResponseStatus.NOT_FOUND);
             }
@@ -98,12 +94,31 @@ class CustomOutbound {
             throw new RuntimeException(ue);
         }
     }
+
+    private NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
+        CommonResponse<Object> commonResponse = new CommonResponse<>(null);
+        commonResponse.setErr_code(commonException.getCode());
+        commonResponse.setErr_msg(commonException.getMessage());
+        String monoJson = new Gson().toJson(commonResponse);
+        return resp
+                .status(commonException.getCode())
+                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .sendString(Mono.just(monoJson));
+    }
+
+    private NettyOutbound sendNotFoundPage(HttpServerResponse resp, CommonException commonException) {
+        return resp
+                .status(HttpResponseStatus.NOT_FOUND)
+                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN)
+                .sendString(Mono.just(commonException.getMessage()));
+    }
+
     private String contentType(String fileExt) {
         String mime = fileExt2Mimes.get(fileExt);
         return mime != null ? mime : "text/plain";
     }
 
-    private static final HashMap<String, String> fileExt2Mimes = new HashMap<String, String>(256);
+    private static final HashMap<String, String> fileExt2Mimes = new HashMap<>(256);
 
     static {
         fileExt2Mimes.put("", "application/octet-stream");
