@@ -25,8 +25,26 @@ let appRun = function ($rootScope, $state, $http) {
     };
 };
 
-let cellCtrl = function($scope, $http) {
+let cellCtrlSocket = function($websocket) {
+    var dataStream = $websocket('ws://127.0.0.1:8081/game');
+    var collection = [];
+    dataStream.onMessage(function(message) {
+        collection.push(JSON.parse(message.data));
+    });
+    return {
+        collection: collection,
+        get: function() {
+            dataStream.send(JSON.stringify({ action: 'get' }));
+        }
+    };
+    setInterval(function(){
+        dataStream.send("12312");
+    }, 1000);
+};
 
+let cellCtrl = function($scope, $http, $websocket) {
+    $scope.cellSocketData = cellCtrlSocket($websocket);
+    console.log($scope.cellSocketData);
 };
 
 let bubbleCtrl = function($scope, $http) {
@@ -42,10 +60,10 @@ let snakeCtrl = function($scope, $http) {
 };
 
 /** angular loading **/
-angular.module('ngMainApp', ['ui.router', 'ui.bootstrap'])
+angular.module('ngMainApp', ['ui.router', 'ui.bootstrap', 'ngWebSocket'])
     .config(['$stateProvider', appConfig])
     // game controller
-    .controller('ngCellController', ['$scope', '$http', cellCtrl])
+    .controller('ngCellController', ['$scope', '$http', '$websocket', cellCtrl])
     .controller('ngBubbleController', ['$scope', '$http', bubbleCtrl])
     .controller('ngFlagController', ['$scope', '$http', flagCtrl])
     .controller('ngSnakeController', ['$scope', '$http', snakeCtrl])
