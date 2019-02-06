@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -36,8 +37,8 @@ public class AppOutbound {
         this.appFilter = appFilter;
     }
 
-    Publisher<Void> sendWs(WebsocketInbound in, WebsocketOutbound out, Publisher<ByteBuf> handle) {
-        return out.send(handle);
+    Publisher<Void> sendWs(WebsocketInbound in, WebsocketOutbound out, Publisher<String> handle) {
+        return out.sendString(handle);
     }
 
     <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
@@ -46,9 +47,9 @@ public class AppOutbound {
         }
         Mono<String> monoJson = Mono.just(new GsonBuilder().create().toJson(handle));
         return resp
-                .status(HttpResponseStatus.OK)
-                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString(monoJson);
+            .status(HttpResponseStatus.OK)
+            .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+            .sendString(monoJson);
     }
 
     NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {

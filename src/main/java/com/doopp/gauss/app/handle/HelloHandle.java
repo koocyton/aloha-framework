@@ -3,10 +3,10 @@ package com.doopp.gauss.app.handle;
 import com.doopp.gauss.app.dao.UserDao;
 import com.doopp.gauss.app.entity.User;
 import com.google.inject.Inject;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.netty.ByteBufFlux;
+import reactor.core.publisher.Flux;
+import reactor.netty.http.websocket.WebsocketInbound;
 
 public class HelloHandle {
 
@@ -22,9 +22,10 @@ public class HelloHandle {
         return user;
     }
 
-    public ByteBufFlux game(ByteBufFlux bbf) {
-        logger.info("2 : {}", bbf);
-        Publisher<User> pu = subscriber -> subscriber.onComplete();
-        return ByteBufFlux.fromInbound(pu);
+    public Flux<String> game(WebsocketInbound in) {
+        logger.info("{}", in.withConnection(connection -> {
+            logger.info("{}", connection.channel().id());
+        }));
+        return in.receive().asString();
     }
 }

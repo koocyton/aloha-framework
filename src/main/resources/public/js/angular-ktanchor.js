@@ -31,15 +31,15 @@ let cellCtrlSocket = function($websocket) {
     dataStream.onMessage(function(message) {
         collection.push(JSON.parse(message.data));
     });
+    setInterval(function(){
+        dataStream.send(JSON.stringify({ action: 'get' }));
+    }, 1000);
     return {
         collection: collection,
         get: function() {
             dataStream.send(JSON.stringify({ action: 'get' }));
         }
     };
-    setInterval(function(){
-        dataStream.send("12312");
-    }, 1000);
 };
 
 let cellCtrl = function($scope, $http, $websocket) {

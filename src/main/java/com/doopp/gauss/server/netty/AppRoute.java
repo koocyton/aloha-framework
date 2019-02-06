@@ -2,6 +2,7 @@ package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.app.handle.HelloHandle;
 import com.google.inject.Injector;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRoutes;
 
 import java.util.function.Consumer;
@@ -28,9 +29,15 @@ public class AppRoute {
                             req, resp, injector.getInstance(HelloHandle.class).hello(id)
                     );
                 })
-                .ws("/game", (in, out) -> appOutbound.sendWs(
-                        in, out, injector.getInstance(HelloHandle.class).game(in.receive())
+                .ws("/game2", (in, out) -> appOutbound.sendWs(
+                        in, out, injector.getInstance(HelloHandle.class).game(in)
                         )
+                )
+                .ws("/game3", (in, out) ->
+                    out.sendString(Mono.just("{\"action\":\"get\"}"))
+                )
+                .ws("/game", (in, out) ->
+                    out.sendString(in.receive().asString())
                 )
                 .get("/**", appOutbound::sendStatic);
     }
