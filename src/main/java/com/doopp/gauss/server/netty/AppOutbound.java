@@ -37,8 +37,8 @@ public class AppOutbound {
         this.appFilter = appFilter;
     }
 
-    Publisher<Void> sendWs(WebsocketInbound in, WebsocketOutbound out, Publisher<String> handle) {
-        return out.sendString(handle);
+    <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, T handle) {
+        return out.sendString(Mono.just(new GsonBuilder().create().toJson(handle)));
     }
 
     <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {

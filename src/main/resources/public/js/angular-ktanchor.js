@@ -1,5 +1,51 @@
 "use strict";
 
+let WebSocketService = function(url) {
+    let protocol = /^https/.test(window.location.protocol) ? "wss\:\/\/" : "ws\:\/\/";
+    this.ws = /^ws/.test(url) ? new WebSocket(url) : new WebSocket(protocol + window.location.host + url);
+
+    this.onOpen = function(callOpen) {
+        if (typeof callOpen==="function") {
+            this.ws.onopen = callOpen;
+        }
+        return this;
+    };
+
+    this.onClose = function(callClose) {
+        if (typeof callClose==="function") {
+            this.ws.onclose = callClose;
+        }
+        return this;
+    };
+
+    this.onError = function(callError) {
+        if (typeof callError==="function") {
+            this.ws.onerror = callError;
+        }
+        return this;
+    };
+
+    this.onMessage = function(callMessage) {
+        if (typeof callMessage==="function") {
+            this.ws.onmessage = callMessage;
+        }
+        return this;
+    };
+
+    this.send = function(message) {
+        this.ws.send(message);
+    };
+
+    this.close = function() {
+        try {
+            this.ws.close();
+        }
+        catch(e) {
+
+        }
+    };
+};
+
 /** app config **/
 let appConfig = function($stateProvider) {
     for (let i in gameList) {
@@ -25,26 +71,15 @@ let appRun = function ($rootScope, $state, $http) {
     };
 };
 
-let cellCtrlSocket = function($websocket) {
-    var dataStream = $websocket('ws://127.0.0.1:8081/game');
-    var collection = [];
-    dataStream.onMessage(function(message) {
-        collection.push(JSON.parse(message.data));
+let cellCtrl = function($scope, $http, $websocket) {
+    let ws = new WebSocketService("/game2");
+    ws.onMessage(function (e) {
+        console.log(e);
     });
     setInterval(function(){
-        dataStream.send(JSON.stringify({ action: 'get' }));
+        console.log("ws.send(\"hello\")");
+        ws.send("hello");
     }, 1000);
-    return {
-        collection: collection,
-        get: function() {
-            dataStream.send(JSON.stringify({ action: 'get' }));
-        }
-    };
-};
-
-let cellCtrl = function($scope, $http, $websocket) {
-    $scope.cellSocketData = cellCtrlSocket($websocket);
-    console.log($scope.cellSocketData);
 };
 
 let bubbleCtrl = function($scope, $http) {

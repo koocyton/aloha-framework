@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.netty.http.websocket.WebsocketInbound;
+import reactor.netty.http.websocket.WebsocketOutbound;
 
 public class HelloHandle {
 
@@ -22,10 +23,7 @@ public class HelloHandle {
         return user;
     }
 
-    public Flux<String> game(WebsocketInbound in) {
-        logger.info("{}", in.withConnection(connection -> {
-            logger.info("{}", connection.channel().id());
-        }));
-        return in.receive().asString();
+    public User game(WebsocketInbound in, WebsocketOutbound out) {
+        return userDao.getById(1L);
     }
 }
