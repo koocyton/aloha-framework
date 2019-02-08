@@ -32,16 +32,19 @@ public class AppRoute {
                             req, resp, injector.getInstance(HelloHandle.class).hello(id)
                     );
                 })
-                .ws("/game2", (in, out) -> out.send(in
-                                .receive()
-                                .map(ByteBuf::asReadOnly)
-                        )
+                .ws("/game", (in, out) -> out
+                    .sendString(Mono.just("Hello World!"))
+                    .then(in.receive()
+                        .asString()
+                        .next()
+                        .log()
+                        .then())
                 )
-                .ws("/game", (in, out) -> {
+                .ws("/game2", (in, out) -> {
                     return out.send(
                         in.withConnection(connection -> {
                             connection.addHandlerLast(new WebSocketFrameHandler());
-                        }).receive()
+                        }).receiveObject().map()
                     );
                 })
                 .ws("/game3", (in, out) -> appOutbound.sendWs(

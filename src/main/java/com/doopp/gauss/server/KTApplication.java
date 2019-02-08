@@ -46,7 +46,7 @@ public class KTApplication {
                 .bind()
                 .block();
 
-        logger.warn("Launched server http://{}:{}/index.html", host, port);
+        logger.warn("Launched server http://{}:{}/game.html", host, port);
 
         disposableServer.onDispose().block();
     }
