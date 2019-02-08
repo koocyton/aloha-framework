@@ -40,10 +40,8 @@ public class AppRoute {
                 .ws("/game", (in, out) -> {
                     return out.send(
                         in.withConnection(connection -> {
-                            connection.addHandler(new WebSocketFrameHandler());
-                        })
-                                .receive()
-                                .map(ByteBuf::asReadOnly)
+                            connection.addHandlerLast(new WebSocketFrameHandler());
+                        }).receive()
                     );
                 })
                 .ws("/game3", (in, out) -> appOutbound.sendWs(

@@ -28,33 +28,35 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
             handleBinary(ctx, (BinaryWebSocketFrame) socketFrame);
         }
         else {
-//            String message = "unsupported frame type: " + frame.getClass().getName();
-//            throw new UnsupportedOperationException(message);
+            String message = "unsupported frame type: " + socketFrame.getClass().getName();
+            throw new UnsupportedOperationException(message);
         }
 
 //        Channel incoming = ctx.channel();
+//        logger.info("\n 1) {}", incoming);
 //        for (Channel channel : channels) {
 //            if (channel != incoming){
-//                channel.writeAndFlush(new TextWebSocketFrame("[" + incoming.remoteAddress() + "]" + msg.text()));
+//                channel.writeAndFlush(new TextWebSocketFrame("[" + incoming.remoteAddress() + "]" + ((TextWebSocketFrame) socketFrame).text()));
 //            } else {
-//                channel.writeAndFlush(new TextWebSocketFrame("[you]" + msg.text() ));
+//                channel.writeAndFlush(new TextWebSocketFrame("[you]" + ((TextWebSocketFrame) socketFrame).text() ));
 //            }
 //        }
     }
 
     private void handleText(ChannelHandlerContext ctx, TextWebSocketFrame socketFrame) {
-        logger.info("\n ChannelHandlerContext >>> {} \n TextWebSocketFrame >>> {}", ctx, socketFrame);
+        logger.info("\n 1) ChannelHandlerContext >>> {} \n 2) TextWebSocketFrame >>> {}", ctx, socketFrame);
 //        ByteBuf buf = socketFrame.content();
 //        System.out.println(buf.array().length); //16M的array字节数组大小！？
 //
 //        // Send the uppercase string back.
-//        String text = socketFrame.text();
-//        logger.info("{} received {}", ctx.channel(), text);
+        String text = socketFrame.text();
+        socketFrame.retain();
+        logger.info("\n 3) {} \n 4) {}", ctx.channel(), text);
         ctx.channel().writeAndFlush(new TextWebSocketFrame("hello boy"));
 //
 //        //Request wsRequest = JSONUtil.fromJSON(request, JsonRequest.class);
-//        Request request = JSON.parseObject(text, JsonRequest.class);
-//        handle(ctx, request);
+        //Request request = JSON.parseObject(text, JsonRequest.class);
+        // handle(ctx, request);
     }
 
     private void handleBinary(ChannelHandlerContext ctx, BinaryWebSocketFrame socketFrame) {
