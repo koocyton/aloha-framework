@@ -9,12 +9,19 @@ import com.doopp.gauss.server.netty.AppRoute;
 import com.doopp.gauss.server.netty.AppOutbound;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import org.apache.log4j.BasicConfigurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 
 public class KTApplication {
 
+    private final static Logger logger = LoggerFactory.getLogger(KTApplication.class);
+
     public static void main(String[] args) {
+
+        // BasicConfigurator.configure();
 
         System.setProperty("applicationPropertiesConfig", args[0]);
 
@@ -39,7 +46,7 @@ public class KTApplication {
                 .bind()
                 .block();
 
-        System.out.printf("\nLaunched server http://%s:%d/index.html\n\n", host, port);
+        logger.warn("Launched server http://{}:{}/index.html", host, port);
 
         disposableServer.onDispose().block();
     }
