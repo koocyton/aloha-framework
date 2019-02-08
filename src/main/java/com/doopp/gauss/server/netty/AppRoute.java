@@ -3,14 +3,15 @@ package com.doopp.gauss.server.netty;
 import com.doopp.gauss.app.handle.HelloHandle;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRoutes;
-
-import java.nio.file.Paths;
 import java.util.function.Consumer;
 
 public class AppRoute {
 
+    private final static Logger logger = LoggerFactory.getLogger(AppRoute.class);
 
     private AppOutbound appOutbound;
 
@@ -32,11 +33,20 @@ public class AppRoute {
                     );
                 })
                 .ws("/game2", (in, out) -> out.send(in
-                        .receive()
-                        .map(ByteBuf::asReadOnly)
-                    )
+                                .receive()
+                                .map(ByteBuf::asReadOnly)
+                        )
                 )
-                .ws("/game", (in, out) -> appOutbound.sendWs(
+                .ws("/game", (in, out) -> {
+                    return out.send(
+                        in.withConnection(connection -> {
+                            connection.addHandler(new WebSocketFrameHandler());
+                        })
+                                .receive()
+                                .map(ByteBuf::asReadOnly)
+                    );
+                })
+                .ws("/game3", (in, out) -> appOutbound.sendWs(
                         in, out, injector.getInstance(HelloHandle.class).game(in, out)
                         )
                 )

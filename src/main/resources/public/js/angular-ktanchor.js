@@ -72,7 +72,7 @@ let appRun = function ($rootScope, $state, $http) {
 };
 
 let cellCtrl = function($scope, $http, $websocket) {
-    let ws = new WebSocketService("/game2");
+    let ws = new WebSocketService("/game");
     ws.onMessage(function (e) {
         console.log(e);
     });

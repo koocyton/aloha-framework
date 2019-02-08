@@ -21,8 +21,6 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame socketFrame) throws Exception {
 
-        System.out.print(" \n  BBBBBBB ");
-
         if (socketFrame instanceof TextWebSocketFrame) {
             handleText(ctx, (TextWebSocketFrame) socketFrame);
         }
@@ -45,7 +43,7 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
     }
 
     private void handleText(ChannelHandlerContext ctx, TextWebSocketFrame socketFrame) {
-        System.out.print("\n >>> " + socketFrame);
+        logger.info("\n ChannelHandlerContext >>> {} \n TextWebSocketFrame >>> {}", ctx, socketFrame);
 //        ByteBuf buf = socketFrame.content();
 //        System.out.println(buf.array().length); //16M的array字节数组大小！？
 //
