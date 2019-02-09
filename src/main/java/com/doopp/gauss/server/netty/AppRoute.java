@@ -3,11 +3,19 @@ package com.doopp.gauss.server.netty;
 import com.doopp.gauss.app.handle.HelloHandle;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRoutes;
+import reactor.netty.http.websocket.WebsocketInbound;
+import reactor.netty.http.websocket.WebsocketOutbound;
+
+import java.nio.charset.Charset;
 import java.util.function.Consumer;
+import java.util.logging.SocketHandler;
 
 public class AppRoute {
 
@@ -32,7 +40,8 @@ public class AppRoute {
                             req, resp, injector.getInstance(HelloHandle.class).hello(id)
                     );
                 })
-                .ws("/game", (in, out) -> out
+                .ws("/game2", this::wsHandler)
+                .ws("/game4", (in, out) -> out
                     .sendString(Mono.just("Hello World!"))
                     .then(in.receive()
                         .asString()
@@ -40,11 +49,17 @@ public class AppRoute {
                         .log()
                         .then())
                 )
-                .ws("/game2", (in, out) -> {
+                .ws("/game", (in, out) -> {
                     return out.send(
                         in.withConnection(connection -> {
+                            in.aggregateFrames()
+                                    .receiveFrames()
+                                    .map(WebSocketFrame::content)
+                                    .map(byteBuf -> byteBuf
+                                            .readCharSequence(byteBuf.readableBytes(), Charset.defaultCharset()).toString())
+                            .map(i -> new TextWebSocketFrame(i + ""));
                             connection.addHandlerLast(new WebSocketFrameHandler());
-                        }).receiveObject().map()
+                        }).receive()
                     );
                 })
                 .ws("/game3", (in, out) -> appOutbound.sendWs(
@@ -52,5 +67,14 @@ public class AppRoute {
                         )
                 )
                 .get("/**", appOutbound::sendStatic);
+    }
+
+
+    private Publisher<Void> wsHandler(WebsocketInbound in, WebsocketOutbound out) {
+        return out.send(
+                in.withConnection(connection -> {
+                    connection.addHandlerLast(new WebSocketFrameHandler());
+                }).receive()
+        );
     }
 }
