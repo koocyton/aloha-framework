@@ -75,29 +75,31 @@ public class AppRoute {
                         )
                 )
                 .ws("/game", (in, out) -> {
-                    AA aa = new AA();
                     return out
                             .sendObject(in
                                     .withConnection(connection -> {
-                                        connection
-                                                .channel()
-                                                .pipeline()
-                                                // .deregister()
-                                                .writeAndFlush(new TextWebSocketFrame("hello 1 "))
-                                                .addListener((ChannelFutureListener) future -> {
-                                                    if (future.isSuccess()) {
-                                                        future.channel().writeAndFlush(new TextWebSocketFrame("hello 2    ss3"));
-                                                        Thread.sleep(1000);
-                                                        logger.info("Thread.sleep(1000)");
-                                                    }
-                                                });
+                                        connection.channel().writeAndFlush(new TextWebSocketFrame("hello 1 "));
+//                                                .pipeline()
+//                                                // .deregister()
+//                                                .writeAndFlush(new TextWebSocketFrame("hello 1 "))
+//                                                /*.addListener((ChannelFutureListener) future -> {
+//                                                    if (future.isSuccess()) {
+//                                                        future.channel().writeAndFlush(new TextWebSocketFrame("hello 2"));
+//                                                        Thread.sleep(1000);
+//                                                        logger.info("Thread.sleep(1000)");
+//                                                    }
+//                                                })*/;
                                     })
                                     .receive()
-                                    .subscribe(
-                                            tick -> logger.info("Tick {}", tick),
-                                            (ex) -> logger.info("Error emitted"),
-                                            () -> logger.info("Completed")
-                                    )
+                                    .map(byteBuf-> {
+                                        logger.info("{}", byteBuf);
+                                        return byteBuf.writeBytes("hello".getBytes());
+                                    })
+//                                    .subscribe(
+//                                            tick -> logger.info("Tick {}", tick),
+//                                            (ex) -> logger.info("Error emitted"),
+//                                            () -> logger.info("Completed")
+//                                    )
                             );
                 })
                 .get("/**", appOutbound::sendStatic);
@@ -110,20 +112,5 @@ public class AppRoute {
                     connection.addHandlerLast(new WebSocketFrameHandler());
                 }).receive()
         );
-    }
-
-    private class AA {
-
-        public void bb() {
-
-        }
-
-        public void cc() {
-
-        }
-
-        public void dd() {
-
-        }
     }
 }

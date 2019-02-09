@@ -43,8 +43,10 @@ public class KTApplication {
                 .route(appRoutes.getRoutesConsumer(injector))
                 .host(host)
                 .port(port)
-                .bind()
-                .block();
+                .wiretap(true)
+                .bindNow();
+                //.bind()
+                //.block();
 
         logger.warn("Launched server http://{}:{}/game.html", host, port);
 
