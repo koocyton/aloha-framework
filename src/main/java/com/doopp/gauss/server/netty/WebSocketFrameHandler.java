@@ -18,8 +18,11 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
 
     private static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame socketFrame) throws Exception {
+
+        // ctxx = ctx;
 
         if (socketFrame instanceof TextWebSocketFrame) {
             handleText(ctx, (TextWebSocketFrame) socketFrame);
@@ -32,15 +35,15 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
             throw new UnsupportedOperationException(message);
         }
 
-//        Channel incoming = ctx.channel();
-//        logger.info("\n 1) {}", incoming);
-//        for (Channel channel : channels) {
-//            if (channel != incoming){
-//                channel.writeAndFlush(new TextWebSocketFrame("[" + incoming.remoteAddress() + "]" + ((TextWebSocketFrame) socketFrame).text()));
-//            } else {
-//                channel.writeAndFlush(new TextWebSocketFrame("[you]" + ((TextWebSocketFrame) socketFrame).text() ));
-//            }
-//        }
+        Channel incoming = ctx.channel();
+        logger.info("\n 1) {}", incoming);
+        for (Channel channel : channels) {
+            if (channel != incoming){
+                channel.writeAndFlush(new TextWebSocketFrame("[" + incoming.remoteAddress() + "]" + ((TextWebSocketFrame) socketFrame).text()));
+            } else {
+                channel.writeAndFlush(new TextWebSocketFrame("[you]" + ((TextWebSocketFrame) socketFrame).text() ));
+            }
+        }
     }
 
     private void handleText(ChannelHandlerContext ctx, TextWebSocketFrame socketFrame) {
@@ -88,6 +91,12 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
 //
 //        Request request  = new ProtobufRequest(proto);
 //        handle(ctx, request);
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        super.channelRead(ctx, msg);
+        logger.info("hello channelRead");
     }
 
     @Override
