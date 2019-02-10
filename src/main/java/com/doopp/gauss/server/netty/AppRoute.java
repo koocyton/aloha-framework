@@ -52,7 +52,7 @@ public class AppRoute {
                             req, resp, injector.getInstance(HelloHandle.class).hello(id)
                     );
                 })
-                .ws("/game2", this::wsHandler)
+                .ws("/game", this::wsHandler)
                 .ws("/game4", (in, out) -> out
                         .sendString(Mono.just("Hello World!"))
                         .then(in.receive()
@@ -127,18 +127,30 @@ public class AppRoute {
                                     .doOnNext(s -> serverRes.incrementAndGet())
                     );
                 })
-                .ws("/game", (in, out) -> out
-                        .sendObject(in.withConnection(c -> c.addHandlerLast(handler))
-                                .receive()
-//                                .map(byteBuf -> {
-//                                    byte[] byteArray = new byte[byteBuf.capacity()];
-//                                    byteBuf.readBytes(byteArray);
-//                                    String result = new String(byteArray);
-//                                    // logger.info("{}", result);
-//                                    return byteBuf;
-//                                })
-                        )
-                )
+                .ws("/game12", (in, out) -> {
+                    return out
+                            .sendObject(in.receive()
+                                    .map(byteBuf -> {
+                                        byte[] byteArray = new byte[byteBuf.capacity()];
+                                        byteBuf.readBytes(byteArray);
+                                        String result = new String(byteArray);
+                                        logger.info("{}", result);
+                                        return result;
+                                    })
+                            );
+                })
+                .ws("/game13", (in, out) -> {
+                    return out.send(in
+                            .receive()
+                            .handle((byteBuf, byteBufSynchronousSink) -> {
+                                byte[] byteArray = new byte[byteBuf.capacity()];
+                                byteBuf.readBytes(byteArray);
+                                String result = new String(byteArray);
+                                logger.info("{}", byteBufSynchronousSink.currentContext());
+                                logger.info("{}", byteBuf);
+                            })
+                    );
+                })
                 .get("/**", appOutbound::sendStatic);
     }
 
