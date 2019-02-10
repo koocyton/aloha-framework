@@ -82,43 +82,6 @@ public class AppRoute {
                         in, out, injector.getInstance(HelloHandle.class).game(in, out)
                         )
                 )
-                .ws("/game10", (in, out) -> {
-                    return out
-                            .sendObject(in
-                                            .withConnection(connection -> {
-                                                connection//.addHandlerLast(handler);
-                                                        .channel()
-                                                        // .newSucceededFuture()
-                                                        // .channel()//.writeAndFlush(new TextWebSocketFrame("hello 1 "));
-                                                        // pipeline()
-                                                        .writeAndFlush(null)
-                                                        .addListener((ChannelFutureListener) future -> {
-//                                                            if (future.isSuccess()) {
-//                                                                for (int ii = 0; ii < 100; ii++) {
-//                                                                    Thread.sleep(1000);
-//                                                                    future.channel().writeAndFlush(new TextWebSocketFrame("hello boy"));
-//                                                                }
-//                                                            }
-                                                            // handler = future.channel();
-                                                        });
-                                            })
-                                            .receive()
-                                            .map(byteBuf -> {
-                                                byte[] byteArray = new byte[byteBuf.capacity()];
-                                                byteBuf.readBytes(byteArray);
-                                                String result = new String(byteArray);
-                                                logger.info("{}", result);
-                                                return result;
-                                            })
-                                    // .map()
-                                    //.flatMap()
-//                                    .subscribe(
-//                                            tick -> logger.info("Tick {}", tick),
-//                                            (ex) -> logger.info("Error emitted"),
-//                                            () -> logger.info("Completed")
-//                                    )
-                            );
-                })
                 .ws("/game7", (in, out) -> {
                     return out.sendString(
                             in.receive()
@@ -126,18 +89,6 @@ public class AppRoute {
                                     .publishOn(Schedulers.single())
                                     .doOnNext(s -> serverRes.incrementAndGet())
                     );
-                })
-                .ws("/game12", (in, out) -> {
-                    return out
-                            .sendObject(in.receive()
-                                    .map(byteBuf -> {
-                                        byte[] byteArray = new byte[byteBuf.capacity()];
-                                        byteBuf.readBytes(byteArray);
-                                        String result = new String(byteArray);
-                                        logger.info("{}", result);
-                                        return result;
-                                    })
-                            );
                 })
                 .ws("/game13", (in, out) -> {
                     return out.send(in
@@ -156,10 +107,47 @@ public class AppRoute {
 
 
     private Publisher<Void> wsHandler(WebsocketInbound in, WebsocketOutbound out) {
-        return out.send(
-                in.withConnection(connection -> {
-                    connection.addHandlerLast(new WebSocketFrameHandler());
-                }).receive()
+
+        final String[] result = new String[1];
+
+        return out.sendString(
+                in
+                    .withConnection(c-> {
+                        for (int ii = 0; ii < 10; ii++) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            c.channel().writeAndFlush(new TextWebSocketFrame(result[0] + "hello boy " + ii));
+                            c.channel().closeFuture();
+                        }
+                    })
+//                    .withConnection(connection -> {
+//                        connection//.addHandlerLast(handler);
+//                            .channel()
+//                             .newSucceededFuture()
+//                             .channel()//.writeAndFlush(new TextWebSocketFrame("hello 1 "));
+//                             pipeline()
+//                            .writeAndFlush(null)
+//                            .addListener((ChannelFutureListener) future -> {
+//                                                            if (future.isSuccess()) {
+//                                                                for (int ii = 0; ii < 100; ii++) {
+//                                                                    Thread.sleep(1000);
+//                                                                    future.channel().writeAndFlush(new TextWebSocketFrame("hello boy"));
+//                                                                }
+//                                                            }
+//                                // handler = future.channel();
+//                            });
+//                    })
+                    .receive()
+                    .map(byteBuf -> {
+                        byte[] byteArray = new byte[byteBuf.capacity()];
+                        byteBuf.readBytes(byteArray);
+                        result[0] = new String(byteArray);
+                        logger.info("{}", result[0]);
+                        return result[0];
+                    })
         );
     }
 }
