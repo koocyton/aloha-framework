@@ -105,24 +105,44 @@ public class AppRoute {
                 .get("/**", appOutbound::sendStatic);
     }
 
-
     private Publisher<Void> wsHandler(WebsocketInbound in, WebsocketOutbound out) {
 
-        final String[] result = new String[1];
+        AtomicInteger clientRes = new AtomicInteger();
+        AtomicInteger serverRes = new AtomicInteger();
 
-        return out.sendString(
-                in
-                    .withConnection(c-> {
-                        for (int ii = 0; ii < 10; ii++) {
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                            c.channel().writeAndFlush(new TextWebSocketFrame(result[0] + "hello boy " + ii));
-                            c.channel().closeFuture();
-                        }
-                    })
+        return out.options(NettyPipeline.SendOptions::flushOnEach)
+                        .sendString(in.receive()
+                                .asString()
+                                .publishOn(Schedulers.single())
+                                .doOnNext(s -> {
+                                    logger.info("11 {}", s);
+                                    serverRes.incrementAndGet();
+                                })
+                                .map(it -> {
+                                    logger.info("22 {}", it);
+                                    return it + " !! ";
+                                })
+                                );
+    }
+
+
+    private Publisher<Void> wsHandler2(WebsocketInbound in, WebsocketOutbound out) {
+
+        VV vv = new VV();
+        return out.sendObject(
+//                 in
+//                    .withConnection(c-> {
+//                        for (int ii = 0; ii < 10; ii++) {
+//                            try {
+//                                Thread.sleep(1000);
+//                            } catch (InterruptedException e) {
+//                                e.printStackTrace();
+//                            }
+//                            c.channel().writeAndFlush(new TextWebSocketFrame(result[0] + "hello boy " + ii));
+//                            c.channel().closeFuture();
+//                        }
+//                    })
+
 //                    .withConnection(connection -> {
 //                        connection//.addHandlerLast(handler);
 //                            .channel()
@@ -140,14 +160,108 @@ public class AppRoute {
 //                                // handler = future.channel();
 //                            });
 //                    })
-                    .receive()
-                    .map(byteBuf -> {
-                        byte[] byteArray = new byte[byteBuf.capacity()];
-                        byteBuf.readBytes(byteArray);
-                        result[0] = new String(byteArray);
-                        logger.info("{}", result[0]);
-                        return result[0];
-                    })
+
+                in
+//                        .withConnection(c->{
+//                            vv.setChannel(c.channel());
+//                            c.channel().writeAndFlush(new TextWebSocketFrame("hihihi"));
+//                        })
+                        .receiveObject()
+                        .doOnSubscribe(m -> {
+                            logger.info("11 {}", m);
+                        })
+                        // .publishOn(Schedulers.single())
+                        .doOnNext(object -> {
+                            // logger.info("22 {}", object);
+                            if (object instanceof  TextWebSocketFrame) {
+                                TextWebSocketFrame tsf = (TextWebSocketFrame) object;
+                                // vv.sendString(tsf.text());
+                                tsf.retain();
+                            }
+                            // webSocketFrame.retain();
+                        })
+                        .log("server-reply")
+//                        .map(webSocketFrame -> {
+//                            // logger.info("11 {}", webSocketFrame);
+//                            webSocketFrame.retain();
+//                            return webSocketFrame;
+//                        })
+//                        .receiveObject()
+//                        .map(channel->{
+//                            logger.info("{}", channel);
+//                            return (Channel) channel;
+//                        })
+
+                // .receiveFrames()
+//                        .map(webSocketFrame -> {
+//                            logger.info("11 {}", webSocketFrame);
+//                            return webSocketFrame.content();
+//                        })
+//                        .map(byteBuf -> {
+//                            logger.info("22 {}", byteBuf);
+//                                return byteBuf
+//                                        .readCharSequence(
+//                                                byteBuf.readableBytes(),
+//                                                Charset.defaultCharset()
+//                                        )
+//                                        .toString();
+//                        })
+//                        .map(text -> {
+//                            logger.info("33 {}", text);
+//                            return new TextWebSocketFrame(text);
+//                        })
+//                        .map(f -> {
+//                            logger.info("44 {}", f);
+//                            return f;
+//                        })
+
+//                in.withConnection(c->{
+//                            logger.info("11 {}", c.channel());
+//                            c.channel().writeAndFlush(new TextWebSocketFrame("first hello"));
+//                        })
+//                        .receiveObject()
+//                        .doOnSubscribe(receive -> {
+//                                logger.info("22 {}", receive);
+//                        })
+//                        .doOnNext(object -> {
+//                            logger.info("33 {}", object);
+//                            if (object instanceof WebSocketFrame) {
+//                                WebSocketFrame wf = (WebSocketFrame) object;
+//                                wf.retain();
+//                            }
+//                })
+
+
+//                in
+//                    .receive()
+//                    .map(s->{
+//                        return s;
+//                    })
+//                    .map(byteBuf -> {
+//                        byte[] byteArray = new byte[byteBuf.capacity()];
+//                        byteBuf.readBytes(byteArray);
+//                        String result= new String(byteArray);
+//                        logger.info("{}", result);
+//                        return byteBuf;
+//                    })
+
+//                    .map(byteBuf->byteBuf)
         );
+    }
+}
+
+
+class VV {
+
+    private Channel chanel;
+
+    void setChannel(Channel channel) {
+        this.chanel = channel;
+    }
+
+    void sendString(String msg) {
+        System.out.println(chanel);
+        chanel.writeAndFlush(new TextWebSocketFrame(msg));
+        chanel.closeFuture();
     }
 }
