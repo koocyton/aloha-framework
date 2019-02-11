@@ -10,10 +10,13 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;
 import reactor.netty.NettyOutbound;
+import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.websocket.WebsocketInbound;
@@ -29,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
+@Slf4j
 public class AppOutbound {
 
     private AppFilter appFilter;
@@ -38,7 +42,17 @@ public class AppOutbound {
     }
 
     <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, T handle) {
-        return out.sendString(Mono.just(new GsonBuilder().create().toJson(handle)));
+        return out.options(NettyPipeline.SendOptions::flushOnEach)
+                .sendString(in
+                                .receiveFrames()
+                                .map(frame -> {
+                                    if (frame instanceof TextWebSocketFrame) {
+                                        TextWebSocketFrame tf = (TextWebSocketFrame) frame;
+                                        return new GsonBuilder().create().toJson(handle);
+                                    }
+                                    return "no";
+                                })
+                );
     }
 
     <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {

@@ -23,7 +23,7 @@ public class HelloHandle {
         return user;
     }
 
-    public User game(WebsocketInbound in, WebsocketOutbound out) {
+    public User game() {
         return userDao.getById(1L);
     }
 }
