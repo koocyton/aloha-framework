@@ -130,23 +130,27 @@ public class AppRoute {
 
         return out.options(NettyPipeline.SendOptions::flushOnEach)
                         .sendString(in
-                                .withConnection(c->{
-                                    logger.info("{}", c.channel().id().toString());
-                                    // clientRes.set(Long.valueOf(c.channel().id().toString()));
-                                    // clientRes.incrementAndGet();
-                                })
-                                .receive()
-                                .asString()
-                                .publishOn(Schedulers.single())
+//                                .withConnection(c->{
+//                                    logger.info("{}", c.channel().id().toString());
+//                                    // clientRes.set(Long.valueOf(c.channel().id().toString()));
+//                                    // clientRes.incrementAndGet();
+//                                })
+                                .receiveFrames()
+                                //.asString()
+                                //.publishOn(Schedulers.single())
 //                                .doOnNext(s -> {
 //                                    logger.info("11 {}", clientRes.get());
 //                                })
-                                .map(it -> {
-                                    serverRes.get();
-                                    logger.info("22 {}", clientRes.get());
-                                    return it + " !! ";
+                                .map(frame -> {
+                                    logger.info("22 {}", frame);
+                                    if (frame instanceof  TextWebSocketFrame) {
+                                        TextWebSocketFrame tf = (TextWebSocketFrame) frame;
+                                        // logger.info("22 {}", tf.text());
+                                        return tf.text() + " hah ";
+                                    }
+                                    return "no";
                                 })
-                                );
+                        );
     }
 
 
