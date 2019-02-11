@@ -138,9 +138,9 @@ public class AppRoute {
                                 .receive()
                                 .asString()
                                 .publishOn(Schedulers.single())
-                                .doOnNext(s -> {
-                                    logger.info("11 {}", clientRes.get());
-                                })
+//                                .doOnNext(s -> {
+//                                    logger.info("11 {}", clientRes.get());
+//                                })
                                 .map(it -> {
                                     serverRes.get();
                                     logger.info("22 {}", clientRes.get());
