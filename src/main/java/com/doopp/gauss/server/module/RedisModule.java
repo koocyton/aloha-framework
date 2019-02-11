@@ -20,7 +20,7 @@ public class RedisModule extends AbstractModule {
 
     @Singleton
     @Provides
-    public CustomShadedJedis sessionRedis() {
+    public CustomShadedJedis userSessionRedis() {
         ApplicationProperties properties = new ApplicationProperties();
         String s1 = properties.s("redis.session.s1");
         String s2 = properties.s("redis.session.s2");

@@ -2,25 +2,33 @@ package com.doopp.gauss.app.handle;
 
 import com.doopp.gauss.app.dao.UserDao;
 import com.doopp.gauss.app.entity.User;
+import com.doopp.gauss.app.service.UserService;
+import com.doopp.gauss.server.message.CommonResponse;
+import com.doopp.gauss.server.message.response.SessionToken;
 import com.google.inject.Inject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
-import reactor.netty.http.websocket.WebsocketInbound;
-import reactor.netty.http.websocket.WebsocketOutbound;
+import lombok.extern.slf4j.Slf4j;
+import reactor.netty.http.server.HttpServerRequest;
 
+@Slf4j
 public class HelloHandle {
 
     @Inject
     private UserDao userDao;
 
-    private final static Logger logger = LoggerFactory.getLogger(HelloHandle.class);
+    @Inject
+    private UserService userService;
 
     public User hello(Long id) {
-        // RequestAttribute requestAttribute = injector.getInstance(RequestAttribute.class);
-        // User user2 = requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class);
-        User user = userDao.getById(id);
-        return user;
+        return userService.getUserById(id);
+    }
+
+    public CommonResponse<SessionToken> setUserCookie(Long id, HttpServerRequest request) {
+        request.cookies().forEach((a, b)->{
+            log.info("{}", a);
+            log.info("{}", b);
+        });
+        String token = userService.createSessionToken(userService.getUserById(id));
+        return new CommonResponse<>(new SessionToken(token));
     }
 
     public User game() {

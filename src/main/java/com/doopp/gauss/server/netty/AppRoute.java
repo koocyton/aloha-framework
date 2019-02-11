@@ -43,12 +43,18 @@ public class AppRoute {
                         req, resp, injector.getInstance(HelloHandle.class).hello(1L)
                         )
                 )
-                .get("/user/{id}", (req, resp) -> {
-                    Long id = Long.valueOf(req.param("id"));
-                    return appOutbound.sendJson(
-                            req, resp, injector.getInstance(HelloHandle.class).hello(id)
-                    );
-                })
+            .get("/user/{id}", (req, resp) -> {
+                Long id = Long.valueOf(req.param("id"));
+                return appOutbound.sendJson(
+                    req, resp, injector.getInstance(HelloHandle.class).hello(id)
+                );
+            })
+            .get("/set_user_cookie/{id}", (req, resp) -> {
+                Long id = Long.valueOf(req.param("id"));
+                return appOutbound.sendJson(
+                    req, resp, injector.getInstance(HelloHandle.class).setUserCookie(id, req)
+                );
+            })
                 .ws("/game", (in, out) -> {
                     return appOutbound.sendWs(
                             in, out, injector.getInstance(HelloHandle.class).game()

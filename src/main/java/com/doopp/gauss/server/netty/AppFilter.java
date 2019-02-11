@@ -6,11 +6,14 @@ import com.doopp.gauss.app.service.UserService;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.google.inject.Injector;
 import io.netty.handler.codec.http.cookie.Cookie;
+import lombok.extern.slf4j.Slf4j;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import java.net.URI;
 import java.util.Set;
 
+
+@Slf4j
 public class AppFilter {
 
     private Injector injector;
@@ -34,6 +37,7 @@ public class AppFilter {
                 "/bootstrap",
                 "/tpl",
                 "/user",
+                // "/set_user_cookie"
         };
 
         // 是否过滤
@@ -52,6 +56,7 @@ public class AppFilter {
             if (doFilter) {
                 // 从 header 里拿到 access token
                 Set<Cookie> cookies = httpRequest.cookies().get(CommonField.SESSION_KEY);
+                log.info("{}", cookies);
                 // 如果 token 存在，反解 token
                 if (cookies != null) {
                     UserService userService = injector.getInstance(UserService.class);
