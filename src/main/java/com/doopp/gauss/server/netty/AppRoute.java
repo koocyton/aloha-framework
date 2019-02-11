@@ -22,6 +22,7 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.logging.SocketHandler;
 
@@ -105,10 +106,11 @@ public class AppRoute {
                 .get("/**", appOutbound::sendStatic);
     }
 
-    private Publisher<Void> wsHandler(WebsocketInbound in, WebsocketOutbound out) {
+    private Publisher<Void> wsHandler4(WebsocketInbound in, WebsocketOutbound out) {
 
         return out.options(NettyPipeline.SendOptions::flushOnEach)
-                .sendString(in.receive()
+                .sendString(in
+                        .receive()
                         // .asString()
                         .publishOn(Schedulers.single())
                         .doOnNext(s -> {
@@ -121,21 +123,27 @@ public class AppRoute {
                 );
     }
 
-    private Publisher<Void> wsHandler4(WebsocketInbound in, WebsocketOutbound out) {
+    private Publisher<Void> wsHandler(WebsocketInbound in, WebsocketOutbound out) {
 
-        AtomicInteger clientRes = new AtomicInteger();
-        AtomicInteger serverRes = new AtomicInteger();
+        AtomicLong clientRes = new AtomicLong();
+        AtomicLong serverRes = new AtomicLong();
 
         return out.options(NettyPipeline.SendOptions::flushOnEach)
-                        .sendString(in.receive()
+                        .sendString(in
+                                .withConnection(c->{
+                                    logger.info("{}", c.channel().id().toString());
+                                    // clientRes.set(Long.valueOf(c.channel().id().toString()));
+                                    // clientRes.incrementAndGet();
+                                })
+                                .receive()
                                 .asString()
                                 .publishOn(Schedulers.single())
                                 .doOnNext(s -> {
-                                    logger.info("11 {}", s);
-                                    serverRes.incrementAndGet();
+                                    logger.info("11 {}", clientRes.get());
                                 })
                                 .map(it -> {
-                                    logger.info("22 {}", it);
+                                    serverRes.get();
+                                    logger.info("22 {}", clientRes.get());
                                     return it + " !! ";
                                 })
                                 );
