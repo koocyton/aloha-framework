@@ -107,6 +107,22 @@ public class AppRoute {
 
     private Publisher<Void> wsHandler(WebsocketInbound in, WebsocketOutbound out) {
 
+        return out.options(NettyPipeline.SendOptions::flushOnEach)
+                .sendString(in.receive()
+                        // .asString()
+                        .publishOn(Schedulers.single())
+                        .doOnNext(s -> {
+                            logger.info("11 {}", s);
+                        })
+                        .map(it -> {
+                            logger.info("22 {}", it);
+                            return "hello !! ";
+                        })
+                );
+    }
+
+    private Publisher<Void> wsHandler4(WebsocketInbound in, WebsocketOutbound out) {
+
         AtomicInteger clientRes = new AtomicInteger();
         AtomicInteger serverRes = new AtomicInteger();
 
