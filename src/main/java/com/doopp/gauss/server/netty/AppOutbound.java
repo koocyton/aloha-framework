@@ -110,7 +110,7 @@ public class AppOutbound {
         }
     }
 
-    private NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
+    public NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
         CommonResponse<Object> commonResponse = new CommonResponse<>(null);
         commonResponse.setErr_code(commonException.getCode());
         commonResponse.setErr_msg(commonException.getMessage());

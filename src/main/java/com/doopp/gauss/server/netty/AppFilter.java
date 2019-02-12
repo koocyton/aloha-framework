@@ -37,6 +37,7 @@ public class AppFilter {
                 "/bootstrap",
                 "/tpl",
                 "/user",
+                "/test",
                 // "/set_user_cookie"
         };
 
