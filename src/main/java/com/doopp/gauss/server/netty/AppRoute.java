@@ -5,29 +5,12 @@ import com.doopp.gauss.app.handle.HelloHandle;
 import com.doopp.gauss.server.exception.CommonException;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.AbstractChannel;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRoutes;
-import reactor.netty.http.websocket.WebsocketInbound;
-import reactor.netty.http.websocket.WebsocketOutbound;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.logging.SocketHandler;
+import com.doopp.gauss.server.netty.HttpRouter;
 
 public class AppRoute {
 
@@ -42,19 +25,10 @@ public class AppRoute {
     public Consumer<HttpServerRoutes> getRoutesConsumer(Injector injector) {
 
         return routes -> routes
-                .ws("/game", (in, out) ->{
-                    return out.options(NettyPipeline.SendOptions::flushOnEach)
-                            .sendString(in
-                                    .receiveFrames()
-                                    .map(frame -> {
-                                        if (frame instanceof TextWebSocketFrame) {
-                                            TextWebSocketFrame tf = (TextWebSocketFrame) frame;
-                                            return new GsonBuilder().create().toJson(handle);
-                                        }
-                                        return "no";
-                                    })
-                            );
-                })
+                .ws("/game", (in, out) -> ((HttpRouter) in)
+                    .filter(in)
+                    .sendJson(injector.getInstance(HelloHandle.class).game())
+                )
                 .get("/test", (req, resp) ->
                         (new AppFilter(injector).doFilter(req, resp))
                                 ? resp.sendString(
