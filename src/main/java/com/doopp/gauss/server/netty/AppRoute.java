@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRoutes;
 import java.util.function.Consumer;
-import com.doopp.gauss.server.netty.HttpRouter;
 
 public class AppRoute {
 
@@ -25,21 +24,11 @@ public class AppRoute {
     public Consumer<HttpServerRoutes> getRoutesConsumer(Injector injector) {
 
         return routes -> routes
-                .ws("/game", (in, out) -> ((HttpRouter) in)
-                    .filter(in)
-                    .sendJson(injector.getInstance(HelloHandle.class).game())
-                )
                 .get("/test", (req, resp) ->
                         (new AppFilter(injector).doFilter(req, resp))
-                                ? resp.sendString(
-                                Mono.just(
-                                        new GsonBuilder().create().toJson(
-                                            injector.getInstance(HelloHandle.class).hello(1L)
-                                        )
-                                )
-                        )
-                                : appOutbound.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION)))
-
+                                ? appOutbound.sendJson(req, resp, injector.getInstance(HelloHandle.class).hello(1L))
+                                : appOutbound.sendJson(req, resp, new CommonException(CommonError.WRONG_SESSION))
+                )
                 .get("/test2", (req, resp) -> appOutbound.sendJson(
                         req, resp, injector.getInstance(HelloHandle.class).hello(1L)
                         )
