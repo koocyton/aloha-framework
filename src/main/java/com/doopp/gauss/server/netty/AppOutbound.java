@@ -32,6 +32,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Slf4j
 public class AppOutbound {
@@ -56,26 +57,15 @@ public class AppOutbound {
                 );
     }
 
-//    NettyOutbound sendJson(Publisher<? extends String> dataStream) {
-////        if (!this.appFilter.doFilter(req, resp)) {
-////            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
-////        }
-//        return (req, resp)->resp
-//                .status(HttpResponseStatus.OK)
-//                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-//                .sendString(dataStream);
-//    }
-
-//    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
-//        if (!this.appFilter.doFilter(req, resp)) {
-//            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
-//        }
-//        Mono<String> monoJson = Mono.just(new GsonBuilder().create().toJson(handle));
-//        return resp
-//                .status(HttpResponseStatus.OK)
-//                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-//                .sendString(monoJson);
-//    }
+    NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Supplier<Publisher<String>> supplier) {
+        if (!this.appFilter.doFilter(req, resp)) {
+            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
+        }
+        return resp
+                .status(HttpResponseStatus.OK)
+                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .sendString(supplier.get());
+    }
 
     NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
         if (!this.appFilter.doFilter(req, resp)) {

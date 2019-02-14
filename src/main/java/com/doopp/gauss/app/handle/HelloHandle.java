@@ -20,17 +20,18 @@ public class HelloHandle {
     private UserService userService;
 
     public Mono<String> hello(Long id) {
+        log.info("kk");
         return Mono.just("aa");
         // return userService.getUserById(id);
     }
 
-    public CommonResponse<SessionToken> setUserCookie(Long id, HttpServerRequest request) {
+    public Mono<SessionToken> setUserCookie(Long id, HttpServerRequest request) {
         request.cookies().forEach((a, b)->{
             log.info("{}", a);
             log.info("{}", b);
         });
         String token = userService.createSessionToken(userService.getUserById(id));
-        return new CommonResponse<>(new SessionToken(token));
+        return Mono.just(new SessionToken(token));
     }
 
     public User game() {
