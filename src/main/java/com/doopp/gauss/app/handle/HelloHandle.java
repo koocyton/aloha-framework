@@ -10,6 +10,11 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
+
 @Slf4j
 public class HelloHandle {
 
@@ -19,7 +24,9 @@ public class HelloHandle {
     @Inject
     private UserService userService;
 
-    public User hello(Long id) {
+    @GET
+    @Path("/user/{id}")
+    public User hello(@PathParam("id") Long id, @QueryParam("id") Long ids) {
         log.info("{}", id);
         return userService.getUserById(id);
     }

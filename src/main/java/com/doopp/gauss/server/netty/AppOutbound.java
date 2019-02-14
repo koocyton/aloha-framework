@@ -1,7 +1,6 @@
 package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.app.defined.CommonError;
-import com.doopp.gauss.app.entity.User;
 import com.doopp.gauss.server.exception.CommonException;
 import com.doopp.gauss.server.message.CommonResponse;
 import com.google.gson.Gson;
@@ -13,7 +12,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;
 import reactor.netty.NettyOutbound;
@@ -31,8 +29,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @Slf4j
@@ -44,14 +40,14 @@ public class AppOutbound {
         this.appFilter = appFilter;
     }
 
-    <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, T handle) {
+    <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, Supplier<T> supplier) {
         return out.options(NettyPipeline.SendOptions::flushOnEach)
                 .sendString(in
                                 .receiveFrames()
                                 .map(frame -> {
                                     if (frame instanceof TextWebSocketFrame) {
-                                        TextWebSocketFrame tf = (TextWebSocketFrame) frame;
-                                        return new GsonBuilder().create().toJson(handle);
+                                        // TextWebSocketFrame tf = (TextWebSocketFrame) frame;
+                                        return new GsonBuilder().create().toJson(supplier.get());
                                     }
                                     return "no";
                                 })
@@ -113,7 +109,7 @@ public class AppOutbound {
         }
     }
 
-    public NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
+    private NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
         CommonResponse<Object> commonResponse = new CommonResponse<>(null);
         commonResponse.setErr_code(commonException.getCode());
         commonResponse.setErr_msg(commonException.getMessage());
