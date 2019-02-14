@@ -7,6 +7,7 @@ import com.doopp.gauss.server.message.CommonResponse;
 import com.doopp.gauss.server.message.response.SessionToken;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
 
 @Slf4j
@@ -18,8 +19,9 @@ public class HelloHandle {
     @Inject
     private UserService userService;
 
-    public User hello(Long id) {
-        return userService.getUserById(id);
+    public Mono<String> hello(Long id) {
+        return Mono.just("aa");
+        // return userService.getUserById(id);
     }
 
     public CommonResponse<SessionToken> setUserCookie(Long id, HttpServerRequest request) {

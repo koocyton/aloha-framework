@@ -27,10 +27,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 @Slf4j
 public class AppOutbound {
@@ -55,16 +56,26 @@ public class AppOutbound {
                 );
     }
 
-    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
-        if (!this.appFilter.doFilter(req, resp)) {
-            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
-        }
-        Mono<String> monoJson = Mono.just(new GsonBuilder().create().toJson(handle));
-        return resp
-            .status(HttpResponseStatus.OK)
-            .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .sendString(monoJson);
+    NettyOutbound sendJson(BiFunction<? super HttpServerRequest, ? super HttpServerResponse, ? extends Publisher<Void>> handler) {
+//        if (!this.appFilter.doFilter(req, resp)) {
+//            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
+//        }
+        return (req, resp)->resp
+                .status(HttpResponseStatus.OK)
+                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .sendString(dataStream);
     }
+
+//    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
+//        if (!this.appFilter.doFilter(req, resp)) {
+//            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
+//        }
+//        Mono<String> monoJson = Mono.just(new GsonBuilder().create().toJson(handle));
+//        return resp
+//                .status(HttpResponseStatus.OK)
+//                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+//                .sendString(monoJson);
+//    }
 
     NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
         if (!this.appFilter.doFilter(req, resp)) {
@@ -111,7 +122,7 @@ public class AppOutbound {
     }
 
     public NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
-        CommonResponse<Object> commonResponse = new CommonResponse<>(null);
+        CommonResponse<Object> commonResponse = new CommonResponse<>(1);
         commonResponse.setErr_code(commonException.getCode());
         commonResponse.setErr_msg(commonException.getMessage());
         String monoJson = new Gson().toJson(commonResponse);
