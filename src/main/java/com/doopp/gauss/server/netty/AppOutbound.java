@@ -56,15 +56,15 @@ public class AppOutbound {
                 );
     }
 
-    NettyOutbound sendJson(BiFunction<? super HttpServerRequest, ? super HttpServerResponse, ? extends Publisher<Void>> handler) {
-//        if (!this.appFilter.doFilter(req, resp)) {
-//            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
-//        }
-        return (req, resp)->resp
-                .status(HttpResponseStatus.OK)
-                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString(dataStream);
-    }
+//    NettyOutbound sendJson(Publisher<? extends String> dataStream) {
+////        if (!this.appFilter.doFilter(req, resp)) {
+////            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
+////        }
+//        return (req, resp)->resp
+//                .status(HttpResponseStatus.OK)
+//                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+//                .sendString(dataStream);
+//    }
 
 //    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, T handle) {
 //        if (!this.appFilter.doFilter(req, resp)) {
