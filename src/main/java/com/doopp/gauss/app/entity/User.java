@@ -11,11 +11,6 @@ public class User implements Serializable {
 
     private String name;
 
-    public User(String name, Long id) {
-        this.name = name;
-        this.id = id;
-    }
-
     public String toString() {
         return "{\"id\":" + this.id + ", \"name\":\"" + this.name + "\"}";
     }

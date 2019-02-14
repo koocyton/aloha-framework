@@ -1,6 +1,7 @@
 package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.app.defined.CommonError;
+import com.doopp.gauss.app.entity.User;
 import com.doopp.gauss.server.exception.CommonException;
 import com.doopp.gauss.server.message.CommonResponse;
 import com.google.gson.Gson;
@@ -57,14 +58,15 @@ public class AppOutbound {
                 );
     }
 
-    NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Supplier<Publisher<String>> supplier) {
+    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Supplier<T> supplier) {
         if (!this.appFilter.doFilter(req, resp)) {
             return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
         }
+        String json = new GsonBuilder().create().toJson(supplier.get());
         return resp
                 .status(HttpResponseStatus.OK)
                 .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString(supplier.get());
+                .sendString(Mono.just(json));
     }
 
     NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
@@ -112,7 +114,7 @@ public class AppOutbound {
     }
 
     public NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
-        CommonResponse<Object> commonResponse = new CommonResponse<>(1);
+        CommonResponse<Object> commonResponse = new CommonResponse<>(null);
         commonResponse.setErr_code(commonException.getCode());
         commonResponse.setErr_msg(commonException.getMessage());
         String monoJson = new Gson().toJson(commonResponse);

@@ -21,17 +21,12 @@ public class AppRoute {
         this.appOutbound = appOutbound;
     }
 
-    private NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp) {
-        return null;
-    }
-
     public Consumer<HttpServerRoutes> getRoutesConsumer(Injector injector) {
 
         HelloHandle helloHandle = injector.getInstance(HelloHandle.class);
 
         return routes -> {
             routes
-                .get("/test", (req, resp) -> sendJson(req, resp))
                 .get("/test", (req, resp) ->
                     appOutbound.sendJson(req, resp, () -> helloHandle.hello(1L))
                 )
