@@ -12,9 +12,15 @@ Gson ( json 序列化 )
 slf4j ( 日志 )
 ```
 
-第一次接触到 Reactor ，学习的例子
+``` buid
 
-代码在 develop 分支下
+> gradle release
+
+> java -jar aloha-framework.jar application.properties
+
+```
+
+code on develop branch
 
 ``` html
 https://github.com/koocyton/aloha-framework/tree/develop
