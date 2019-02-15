@@ -3,17 +3,10 @@ package com.doopp.gauss.app.handle;
 import com.doopp.gauss.app.dao.UserDao;
 import com.doopp.gauss.app.entity.User;
 import com.doopp.gauss.app.service.UserService;
-import com.doopp.gauss.server.message.CommonResponse;
 import com.doopp.gauss.server.message.response.SessionToken;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
 
 @Slf4j
 public class HelloHandle {
@@ -24,9 +17,7 @@ public class HelloHandle {
     @Inject
     private UserService userService;
 
-    @GET
-    @Path("/user/{id}")
-    public User hello(@PathParam("id") Long id, @QueryParam("id") Long ids) {
+    public User hello(Long id) {
         log.info("{}", id);
         return userService.getUserById(id);
     }

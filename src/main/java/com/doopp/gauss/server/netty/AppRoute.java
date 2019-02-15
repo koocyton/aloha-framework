@@ -33,10 +33,10 @@ public class AppRoute {
                 .get("/user/{id}", (req, resp) ->
                     ob.sendJson(req, resp, () -> helloHandle.hello(Long.valueOf(req.param("id"))))
                 )
-//                .get("/set_user_cookie/{id}", (req, resp) -> {
-//                    Long id = Long.valueOf(req.param("id"));
-//                    return appOutbound.sendJson(req, resp, () -> helloHandle.setUserCookie(id, req));
-//                })
+                .get("/set_user_cookie/{id}", (req, resp) -> {
+                    Long id = Long.valueOf(req.param("id"));
+                    return ob.sendJson(req, resp, () -> helloHandle.setUserCookie(id, req));
+                })
                 .ws("/game", (in, out) -> {
                     return ob.sendWs(
                         in, out, ()->injector.getInstance(HelloHandle.class).game()
