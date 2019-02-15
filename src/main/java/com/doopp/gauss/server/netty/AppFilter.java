@@ -36,9 +36,9 @@ public class AppFilter {
                 "/js",
                 "/bootstrap",
                 "/tpl",
-                // "/user",
-                // "/test",
-                // "/set_user_cookie"
+                "/user",
+                "/test",
+                "/set_user_cookie"
         };
 
         // 是否过滤

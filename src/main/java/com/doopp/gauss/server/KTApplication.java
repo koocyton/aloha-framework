@@ -36,11 +36,11 @@ public class KTApplication {
         int port = applicationProperties.i("server.port");
 
         AppRoute appRoutes = new AppRoute(
-            new AppOutbound(new AppFilter(injector))
+            new AppOutbound(injector)
         );
 
         DisposableServer disposableServer = HttpServer.create()
-                .route(appRoutes.getRoutesConsumer(injector))
+                .route(appRoutes.getRoutesConsumer())
                 .host(host)
                 .port(port)
                 .wiretap(true)

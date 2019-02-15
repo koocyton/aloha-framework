@@ -5,6 +5,7 @@ import com.doopp.gauss.server.exception.CommonException;
 import com.doopp.gauss.server.message.CommonResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -29,36 +30,38 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 @Slf4j
 public class AppOutbound {
 
     private AppFilter appFilter;
 
-    public AppOutbound(AppFilter appFilter) {
-        this.appFilter = appFilter;
+    private Injector injector;
+
+    public AppOutbound(Injector injector) {
+        this.appFilter = new AppFilter(injector);
+        this.injector = injector;
     }
 
-    <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, Supplier<T> supplier) {
+    <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, Function<Injector, T> function) {
         return out.options(NettyPipeline.SendOptions::flushOnEach)
                 .sendString(in
-                                .receiveFrames()
-                                .map(frame -> {
-                                    if (frame instanceof TextWebSocketFrame) {
-                                        // TextWebSocketFrame tf = (TextWebSocketFrame) frame;
-                                        return new GsonBuilder().create().toJson(supplier.get());
-                                    }
-                                    return "no";
-                                })
+                        .receiveFrames()
+                        .map(frame -> {
+                            if (frame instanceof TextWebSocketFrame) {
+                                return new GsonBuilder().create().toJson(function.apply(injector));
+                            }
+                            return "\n";
+                        })
                 );
     }
 
-    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Supplier<T> supplier) {
+    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Function<Injector, T> function) {
         if (!this.appFilter.doFilter(req, resp)) {
             return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
         }
-        String json = new GsonBuilder().create().toJson(supplier.get());
+        String json = new GsonBuilder().create().toJson(function.apply(injector));
         return resp
                 .status(HttpResponseStatus.OK)
                 .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
@@ -73,7 +76,7 @@ public class AppOutbound {
         String requirePath = "/public" + requestUri;
 
         URL fileUrl = this.getClass().getResource(requirePath);
-        if (fileUrl==null) {
+        if (fileUrl == null) {
             return resp.status(HttpResponseStatus.NOT_FOUND);
         }
 
@@ -83,14 +86,13 @@ public class AppOutbound {
                 return resp
                         .header(HttpHeaderNames.CONTENT_TYPE, contentType(requirePath.substring(requirePath.lastIndexOf(".") + 1)))
                         .sendFile(filePath);
-            }
-            catch(URISyntaxException e) {
+            } catch (URISyntaxException e) {
                 throw new RuntimeException(e);
             }
         }
 
         try (InputStream fileIs = this.getClass().getResourceAsStream(requirePath)) {
-            if (fileIs==null) {
+            if (fileIs == null) {
                 return resp.status(HttpResponseStatus.NOT_FOUND);
             }
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -103,8 +105,7 @@ public class AppOutbound {
             return resp
                     .header(HttpHeaderNames.CONTENT_TYPE, contentType(requirePath.substring(requirePath.lastIndexOf(".") + 1)))
                     .send(ByteBufMono.just(buf));
-        }
-        catch(IOException ue) {
+        } catch (IOException ue) {
             throw new RuntimeException(ue);
         }
     }
