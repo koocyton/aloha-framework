@@ -52,7 +52,7 @@ dependencies {
     // Util
     compile 'org.mapstruct:mapstruct-jdk8:1.2.0.Final'
     compileOnly 'org.mapstruct:mapstruct-processor:1.2.0.Final'
-    compileOnly 'org.projectlombok:lombok:1.18.4'
+    compileOnly 'org.projectlombok:lombok:1.18.6'
 
     // Logging
     compile 'org.slf4j:slf4j-api:1.7.25'
