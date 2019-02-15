@@ -22,6 +22,4 @@ slf4j ( 日志 )
 
 code on develop branch
 
-``` html
 https://github.com/koocyton/aloha-framework/tree/develop
-```
