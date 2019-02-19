@@ -12,6 +12,10 @@ import com.doopp.gauss.server.module.RedisModule;
 import com.doopp.gauss.server.netty.AppOutbound;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpRequest;
 import org.mybatis.guice.MyBatisModule;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -20,7 +24,7 @@ import java.io.IOException;
 
 public class KTApplication {
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    public static void main(String[] args) {
 
         // BasicConfigurator.configure();
 

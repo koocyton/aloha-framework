@@ -6,12 +6,14 @@ import com.doopp.gauss.common.message.CommonResponse;
 import com.doopp.gauss.common.message.response.Authentication;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.google.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 
+@Slf4j
 public class LoginHandle {
 
     @Inject
@@ -31,8 +33,9 @@ public class LoginHandle {
     }
 
     @GET
-    @Path("/admin/api/user/{id}")
-    public CommonResponse<User> abc(@PathParam("id") Long id) {
+    @Path("/admin/api/user")
+    public CommonResponse<User> abc(@QueryParam("id") Long id) {
+        log.info("{}", id);
         return new CommonResponse<>(userDao.getById(id));
     }
 }

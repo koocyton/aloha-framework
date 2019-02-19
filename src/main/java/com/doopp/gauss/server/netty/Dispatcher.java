@@ -10,6 +10,8 @@ import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cookie.Cookie;
@@ -42,6 +44,8 @@ import java.util.jar.JarFile;
 
 @Slf4j
 public class Dispatcher {
+
+    private int ii=0;
 
     private Injector injector;
 
@@ -94,23 +98,35 @@ public class Dispatcher {
                                 routes.post(requestPath, (req, resp) -> {
                                     // return resp.sendString(Mono.just("aaa"));
                                     return resp.sendString(
-                                            req.receiveContent()
-                                                    .map(httpContent -> {
-                                                        //ByteBuf bf = httpContent.content();
-                                                        //byte[] bytes = new byte[bf.readableBytes()];
-                                                        //bf.readBytes(bytes);
-                                                        //String body = new String(bytes, StandardCharsets.UTF_8);
-                                                        //log.info("body {}", body);
-                                                        getRequestParams(req, httpContent);
-                                                        //Type type = new TypeToken<OAuthRequest<LoginRequest>>() {}.getType();
-                                                        //OAuthRequest<LoginRequest> requestObject = new GsonBuilder().create().fromJson(body, type);
-                                                        try {
-                                                            return new GsonBuilder().create().toJson(null);
-                                                            // return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, httpContent)));
-                                                        } catch (Exception e) {
-                                                            return new GsonBuilder().create().toJson(e);
-                                                        }
-                                                    }));
+                                        Mono.just("bbq")
+
+//                                        req.receive().map(byteBuf -> {
+//                                            byte[] bytes = new byte[byteBuf.readableBytes()];
+//                                            byteBuf.readBytes(bytes);
+//                                            log.info("bytes {}", req.params());
+//                                            return "abc";
+//                                        }).map(str->{
+//                                            log.info("str {}", str);
+//                                            return str;
+//                                        })
+
+//                                        req.receiveContent().map(httpContent -> {
+//                                            //ByteBuf bf = httpContent.content();
+//                                            //byte[] bytes = new byte[bf.readableBytes()];
+//                                            //bf.readBytes(bytes);
+//                                            //String body = new String(bytes, StandardCharsets.UTF_8);
+//                                            //log.info("body {}", body);
+//                                            // getRequestParams(req, httpContent.content());
+//                                            //Type type = new TypeToken<OAuthRequest<LoginRequest>>() {}.getType();
+//                                            //OAuthRequest<LoginRequest> requestObject = new GsonBuilder().create().fromJson(body, type);
+//                                            log.info(" >> dd");
+//                                            try {
+//                                                return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, httpContent.content())));
+//                                            } catch (Exception e) {
+//                                                return new GsonBuilder().create().toJson(e);
+//                                            }
+//                                        })
+                                    );
                                 });
                             }
                             // DELETE
@@ -132,10 +148,9 @@ public class Dispatcher {
         };
     }
 
-    private Object[] getMethodParams(Method method, HttpServerRequest request, HttpContent httpContent) {
+    private Object[] getMethodParams(Method method, HttpServerRequest request, ByteBuf content) {
         ArrayList<Object> objectList = new ArrayList<>();
-        Map<String, String> questParams = getRequestParams(request, httpContent);
-        log.info("{}", questParams);
+        Map<String, String> questParams = getRequestParams(request, content);
         for (Parameter parameter : method.getParameters()) {
             Class parameterClass;
             try {
@@ -146,7 +161,7 @@ public class Dispatcher {
             // QueryParam
             if (parameter.getAnnotation(QueryParam.class) != null) {
                 String requestParamKey = parameter.getAnnotation(QueryParam.class).value();
-                objectList.add(getParamTypeValue(request.param(requestParamKey), parameterClass));
+                objectList.add(getParamTypeValue(questParams.get(requestParamKey), parameterClass));
             }
             // PathParam
             else if (parameter.getAnnotation(PathParam.class) != null) {
@@ -154,18 +169,25 @@ public class Dispatcher {
                 objectList.add(getParamTypeValue(request.param(requestParamKey), parameterClass));
             }
         }
+        // log.info("objectList.toArray() {}", objectList.toArray());
         return objectList.toArray();
     }
 
     private <T> T getParamTypeValue(String value, Class<T> clazz) {
         if (clazz == Long.class) {
             return clazz.cast(Long.valueOf(value));
-        } else if (clazz == Integer.class) {
+        }
+        else if (clazz == Integer.class) {
             return clazz.cast(Integer.valueOf(value));
-        } else if (clazz == Boolean.class) {
+        }
+        else if (clazz == Boolean.class) {
             return clazz.cast(Boolean.valueOf(value));
-        } else {
+        }
+        else if (clazz == String.class) {
             return clazz.cast(value);
+        }
+        else {
+            return new GsonBuilder().create().fromJson(value, clazz);
         }
     }
 
@@ -207,7 +229,7 @@ public class Dispatcher {
     }
 
     // 处理 Get Post 请求
-    private Map<String, String> getRequestParams(HttpServerRequest request, HttpContent httpContent) {
+    private Map<String, String> getRequestParams(HttpServerRequest request, ByteBuf content) {
         Map<String, String> requestParams = new HashMap<>();
         // Query Params
         QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
@@ -215,20 +237,20 @@ public class Dispatcher {
         for (Map.Entry<String, List<String>> next : params.entrySet()) {
             requestParams.put(next.getKey(), next.getValue().get(0));
         }
-        // POST Params
-        ByteBuf byteBuf = httpContent.content();
-        byte[] byteArray = new byte[byteBuf.capacity()];
-        byteBuf.readBytes(byteArray);
-        DefaultHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), Unpooled.wrappedBuffer(byteArray));
-        log.info(" bb {}", byteBufToString(httpContent.content()));
-        log.info("dhr {}", dhr);
-        HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), dhr);
-        List<InterfaceHttpData> postData = postDecoder.getBodyHttpDatas();
-        log.info("postData {}", postData);
-        for (InterfaceHttpData data : postData) {
-            if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
-                MemoryAttribute attribute = (MemoryAttribute) data;
-                requestParams.put(attribute.getName(), attribute.getValue());
+        if (content!=null) {
+            // POST Params
+            byte[] byteArray = new byte[content.capacity()];
+            content.readBytes(byteArray);
+            DefaultHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), Unpooled.wrappedBuffer(byteArray));
+            HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), dhr);
+            List<InterfaceHttpData> postData = postDecoder.getBodyHttpDatas();
+            log.info(" >>> postData");
+            log.info(" - postData {}", new String(byteArray));
+            for (InterfaceHttpData data : postData) {
+                if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
+                    MemoryAttribute attribute = (MemoryAttribute) data;
+                    requestParams.put(attribute.getName(), attribute.getValue());
+                }
             }
         }
         return requestParams;
@@ -239,18 +261,4 @@ public class Dispatcher {
         byteBuf.readBytes(byteArray);
         return new String(byteArray);
     }
-
-//    public synchronized List<InterfaceHttpData> getMultipartParts() {
-//        if (!isMultipartRequest() || !isCompleteRequestWithAllChunks())
-//            return null;
-//        if (multipartData == null) {
-//            byte[] contentBytes = getRawContentBytes();
-//            HttpRequest fullHttpRequestForMultipartDecoder = (contentBytes == null)
-//                    ? new DefaultFullHttpRequest(getProtocolVersion(), getMethod(), getUri())
-//                    : new DefaultFullHttpRequest(getProtocolVersion(), getMethod(), getUri(), Unpooled.wrappedBuffer(contentBytes));
-//            fullHttpRequestForMultipartDecoder.headers().add(getHeaders());
-//            multipartData = new HttpPostMultipartRequestDecoder(new DefaultHttpDataFactory(false), fullHttpRequestForMultipartDecoder, getContentCharset());
-//        }
-//        return multipartData.getBodyHttpDatas();
-//    }
 }
