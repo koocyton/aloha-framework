@@ -41,11 +41,6 @@ public class KTApplication {
         dispatcher.setHandlePackages("com.doopp.gauss.admin.handle", "com.doopp.gauss.api.handle");
         dispatcher.setHandleMethodRoute();
 
-        // AppOutbound ob = new AppOutbound();
-        // ob.setInjector(injector);
-        // ob.addFilter("/admin", AdminFilter.class);
-        // ob.addFilter("/api", ApiFilter.class);
-
         DisposableServer disposableServer = HttpServer.create()
                 .route(dispatcher.setHandleMethodRoute())
                 .host(host)
@@ -53,8 +48,8 @@ public class KTApplication {
                 .wiretap(true)
                 .bindNow();
 
-        // System.out.printf("\nLaunched server http://%s:%d/api/login\n", host, port);
+        System.out.printf("\nLaunched http server http://%s:%d/\n\n", host, port);
 
-        //disposableServer.onDispose().block();
+        disposableServer.onDispose().block();
     }
 }
