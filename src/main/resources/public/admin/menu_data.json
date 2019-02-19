@@ -1,0 +1,26 @@
+[
+    {"text":"API 接口", "open":true, "menus":[
+        {"text":"支付流程", "ui_sref":"payment-process", "href":"/doc/payment-process"},
+        {"text":"渠道开关", "ui_sref":"api-config", "href":"/doc/api-config"},
+        {"text":"错误代码", "ui_sref":"error-code", "href":"/doc/error-code"},
+        {"text":"商品列表", "open":true, "menus":[
+            {"text":"Google Apple 商品列表", "ui_sref":"goods-list", "href":"/api/goods-list"},
+            {"text":"第三方渠道商品列表", "ui_sref":"goods-list-channel", "href":"/api/goods-list-channel"}
+        ]},
+        {"text":"预支付", "open":true, "menus":[
+            {"text":"Google Apple 预支付", "ui_sref":"prepare-payment", "href":"/api/prepare-payment"},
+            {"text":"第三方渠道预支付", "ui_sref":"prepare-payment-channel", "href":"/api/prepare-payment-channel"}
+        ]},
+        {"text":"完成支付", "open":true, "menus":[
+            {"text":"完成 Google 支付", "ui_sref":"complete-google", "href":"/api/complete-google"},
+            {"text":"完成 Apple 支付", "ui_sref":"complete-apple", "href":"/api/complete-apple"},
+            {"text":"完成 Bluepay 支付", "ui_sref":"complete-bluepay", "href":"/api/complete-bluepay"},
+            {"text":"完成 Codapay 支付", "ui_sref":"complete-codapay", "href":"/api/complete-codapay"},
+            {"text":"完成 9-APP 支付", "ui_sref":"complete-9app", "href":"/api/complete-9app"}
+        ]},
+        {"text":"test", "open":true, "menus":[
+            {"text":"icon 列表", "ui_sref":"icons", "href":"/doc/icons"},
+            {"text":"登录测试", "ui_sref":"login", "href":"/doc/login"}
+        ]}
+    ]}
+]

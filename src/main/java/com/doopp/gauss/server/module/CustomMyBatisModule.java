@@ -1,6 +1,5 @@
 package com.doopp.gauss.server.module;
 
-import com.doopp.gauss.app.dao.UserDao;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.database.HikariDataSourceProvider;
 import com.google.inject.name.Names;
@@ -16,7 +15,7 @@ public class CustomMyBatisModule extends MyBatisModule {
         bindDataSourceProviderType(HikariDataSourceProvider.class);
         // bindDataSourceProviderType(DruidDataSourceProvider.class);
         bindTransactionFactoryType(JdbcTransactionFactory.class);
-        addMapperClass(UserDao.class);
+        addMapperClasses("com.doopp.gauss.common.dao");
         Names.bindProperties(binder(), new ApplicationProperties());
     }
 }

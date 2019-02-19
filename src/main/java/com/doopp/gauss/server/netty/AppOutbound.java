@@ -1,10 +1,15 @@
 package com.doopp.gauss.server.netty;
 
-import com.doopp.gauss.app.defined.CommonError;
-import com.doopp.gauss.server.exception.CommonException;
+import com.doopp.gauss.api.handle.OAuthHandle;
+import com.doopp.gauss.common.defined.CommonError;
+import com.doopp.gauss.common.exception.CommonException;
+import com.doopp.gauss.common.message.OAuthRequest;
+import com.doopp.gauss.common.message.request.LoginRequest;
+import com.doopp.gauss.server.filter.iFilter;
 import com.doopp.gauss.server.message.CommonResponse;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -25,8 +30,11 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Type;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -35,16 +43,30 @@ import java.util.function.Function;
 @Slf4j
 public class AppOutbound {
 
-    private AppFilter appFilter;
+    private final HashMap<String, iFilter> filters = new HashMap<>();
 
     private Injector injector;
 
-    public AppOutbound(Injector injector) {
-        this.appFilter = new AppFilter(injector);
+    public void setInjector(Injector injector) {
         this.injector = injector;
     }
 
-    <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, Function<Injector, T> function) {
+    public void addFilter(String path, Class<? extends iFilter> filterClass) {
+        this.filters.put(path, injector.getInstance(filterClass));
+    }
+
+    private boolean doFilter(HttpServerRequest request, HttpServerResponse response) {
+        String uri = URI.create(request.uri()).getPath();
+        for(String key : this.filters.keySet()) {
+            int keyLength = key.length();
+            if (uri.substring(0, keyLength).equals(key)) {
+                 return this.filters.get(key).doFilter(request, response);
+            }
+        }
+        return true;
+    }
+
+    public <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, Function<Injector, T> function) {
         return out.options(NettyPipeline.SendOptions::flushOnEach)
                 .sendString(in
                         .receiveFrames()
@@ -57,8 +79,8 @@ public class AppOutbound {
                 );
     }
 
-    <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Function<Injector, T> function) {
-        if (!this.appFilter.doFilter(req, resp)) {
+    public <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Function<Injector, T> function) {
+        if (!this.doFilter(req, resp)) {
             return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
         }
         String json = new GsonBuilder().create().toJson(function.apply(injector));
@@ -68,8 +90,8 @@ public class AppOutbound {
                 .sendString(Mono.just(json));
     }
 
-    NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
-        if (!this.appFilter.doFilter(req, resp)) {
+    public NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
+        if (!this.doFilter(req, resp)) {
             return this.sendNotFoundPage(resp, new CommonException(CommonError.WRONG_SESSION));
         }
         String requestUri = (req.uri().equals("/") || req.uri().equals("")) ? "/index.html" : req.uri();
@@ -110,7 +132,7 @@ public class AppOutbound {
         }
     }
 
-    private NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
+    public NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
         CommonResponse<Object> commonResponse = new CommonResponse<>(null);
         commonResponse.setErr_code(commonException.getCode());
         commonResponse.setErr_msg(commonException.getMessage());
@@ -121,11 +143,17 @@ public class AppOutbound {
                 .sendString(Mono.just(monoJson));
     }
 
-    private NettyOutbound sendNotFoundPage(HttpServerResponse resp, CommonException commonException) {
+    public NettyOutbound sendNotFoundPage(HttpServerResponse resp, CommonException commonException) {
         return resp
-                .status(HttpResponseStatus.NOT_FOUND)
-                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN)
-                .sendString(Mono.just(commonException.getMessage()));
+            .status(HttpResponseStatus.NOT_FOUND)
+            .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN)
+            .sendString(Mono.just(commonException.getMessage()));
+    }
+
+    public NettyOutbound sendRedirect(HttpServerResponse resp, String redirect) {
+        return resp
+            .status(HttpResponseStatus.PERMANENT_REDIRECT)
+            .sendString(Mono.just(""));
     }
 
     private String contentType(String fileExt) {

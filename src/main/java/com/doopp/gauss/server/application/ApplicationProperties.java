@@ -19,6 +19,10 @@ public class  ApplicationProperties extends Properties {
         }
     }
 
+    public Long l(String key) {
+        return Long.valueOf(this.getProperty(key));
+    }
+
     public String s(String key) {
         return this.getProperty(key);
     }

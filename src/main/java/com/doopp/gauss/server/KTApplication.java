@@ -1,25 +1,26 @@
 package com.doopp.gauss.server;
 
+import com.doopp.gauss.server.netty.Dispatcher;
+import com.doopp.gauss.server.route.AdminRoute;
+import com.doopp.gauss.server.route.ApiRoute;
 import com.doopp.gauss.server.application.ApplicationProperties;
-import com.doopp.gauss.server.netty.AppFilter;
+import com.doopp.gauss.server.filter.AdminFilter;
+import com.doopp.gauss.server.filter.ApiFilter;
 import com.doopp.gauss.server.module.ApplicationModule;
 import com.doopp.gauss.server.module.CustomMyBatisModule;
 import com.doopp.gauss.server.module.RedisModule;
-import com.doopp.gauss.server.netty.AppRoute;
 import com.doopp.gauss.server.netty.AppOutbound;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import org.apache.log4j.BasicConfigurator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.mybatis.guice.MyBatisModule;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 
+import java.io.IOException;
+
 public class KTApplication {
 
-    private final static Logger logger = LoggerFactory.getLogger(KTApplication.class);
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
 
         // BasicConfigurator.configure();
 
@@ -35,21 +36,25 @@ public class KTApplication {
         String host = applicationProperties.s("server.host");
         int port = applicationProperties.i("server.port");
 
-        AppRoute appRoutes = new AppRoute(
-            new AppOutbound(injector)
-        );
+        Dispatcher dispatcher = new Dispatcher();
+        dispatcher.setInjector(injector);
+        dispatcher.setHandlePackages("com.doopp.gauss.admin.handle", "com.doopp.gauss.api.handle");
+        dispatcher.setHandleMethodRoute();
+
+        // AppOutbound ob = new AppOutbound();
+        // ob.setInjector(injector);
+        // ob.addFilter("/admin", AdminFilter.class);
+        // ob.addFilter("/api", ApiFilter.class);
 
         DisposableServer disposableServer = HttpServer.create()
-                .route(appRoutes.getRoutesConsumer())
+                .route(dispatcher.setHandleMethodRoute())
                 .host(host)
                 .port(port)
                 .wiretap(true)
                 .bindNow();
-                //.bind()
-                //.block();
 
-        logger.warn("Launched server http://{}:{}/game.html", host, port);
+        // System.out.printf("\nLaunched server http://%s:%d/api/login\n", host, port);
 
-        disposableServer.onDispose().block();
+        //disposableServer.onDispose().block();
     }
 }
