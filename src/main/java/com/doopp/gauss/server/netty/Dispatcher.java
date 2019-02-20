@@ -14,12 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerRoutes;
+
 import javax.ws.rs.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
@@ -27,8 +27,6 @@ import java.util.jar.JarFile;
 
 @Slf4j
 public class Dispatcher {
-
-    private int ii=0;
 
     private Injector injector;
 
@@ -67,8 +65,8 @@ public class Dispatcher {
                                 log.info("GET " + requestPath);
                                 routes.get(requestPath, (req, resp) -> {
                                     try {
-                                         return resp.sendString(Mono.just(
-                                            new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, null)))
+                                        return resp.sendString(Mono.just(
+                                                new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, null)))
                                         ));
                                     } catch (Exception e) {
                                         return resp.sendString(Mono.just(e.getMessage()));
@@ -81,19 +79,23 @@ public class Dispatcher {
                                 routes.post(requestPath, (req, resp) -> {
                                     // return resp.sendString(Mono.just("aaa"));
                                     return resp.sendString(
-                                        req.receive()
-                                                .aggregate()
-                                                .retain()
-                                                .map(byteBuf -> {
-                                                    try {
-                                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
-                                                    } catch (Exception e) {
-                                                        e.printStackTrace();
-                                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
-                                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
-                                                        ));
-                                                    }
-                                                })
+                                            req
+                                                    // .withConnection(c -> {
+                                                    //     c.channel().attr(AttributeKey.valueOf("currentUser")).set("abc");
+                                                    // })
+                                                    .receive()
+                                                    .aggregate()
+                                                    .retain()
+                                                    .map(byteBuf -> {
+                                                        try {
+                                                            return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
+                                                        } catch (Exception e) {
+                                                            e.printStackTrace();
+                                                            return new GsonBuilder().create().toJson(new CommonResponse<>(
+                                                                    new CommonException(CommonError.FAIL.code(), e.getMessage())
+                                                            ));
+                                                        }
+                                                    })
                                     );
                                 });
                             }
@@ -120,7 +122,7 @@ public class Dispatcher {
     private Object[] getMethodParams(Method method, HttpServerRequest request, ByteBuf content) {
         ArrayList<Object> objectList = new ArrayList<>();
         Map<String, String> questParams = queryParams(request);
-        Map<String, String> formParams  = formParams(request, content);
+        Map<String, String> formParams = formParams(request, content);
         for (Parameter parameter : method.getParameters()) {
             Class<?> parameterClass = parameter.getType();
             // CookieParam
@@ -166,17 +168,13 @@ public class Dispatcher {
     private <T> T getParamTypeValue(String value, Class<T> clazz) {
         if (clazz == Long.class) {
             return clazz.cast(Long.valueOf(value));
-        }
-        else if (clazz == Integer.class) {
+        } else if (clazz == Integer.class) {
             return clazz.cast(Integer.valueOf(value));
-        }
-        else if (clazz == Boolean.class) {
+        } else if (clazz == Boolean.class) {
             return clazz.cast(Boolean.valueOf(value));
-        }
-        else if (clazz == String.class) {
+        } else if (clazz == String.class) {
             return clazz.cast(value);
-        }
-        else {
+        } else {
             return new GsonBuilder().create().fromJson(value, clazz);
         }
     }
@@ -233,7 +231,7 @@ public class Dispatcher {
     // 简单的 Post 请求
     private Map<String, String> formParams(HttpServerRequest request, ByteBuf content) {
         Map<String, String> requestParams = new HashMap<>();
-        if (content!=null) {
+        if (content != null) {
             // POST Params
             FullHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), content);
             HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), dhr);

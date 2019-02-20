@@ -1,5 +1,7 @@
 package com.doopp.gauss.server;
 
+import com.doopp.gauss.server.filter.AdminFilter;
+import com.doopp.gauss.server.filter.ApiFilter;
 import com.doopp.gauss.server.netty.Dispatcher;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.module.ApplicationModule;
@@ -31,7 +33,8 @@ public class KTApplication {
         Dispatcher dispatcher = new Dispatcher();
         dispatcher.setInjector(injector);
         dispatcher.setHandlePackages("com.doopp.gauss.admin.handle", "com.doopp.gauss.api.handle");
-        dispatcher.setHandleMethodRoute();
+        dispatcher.addFilter(  "/api", new ApiFilter()  );
+        dispatcher.addFilter("/admin", new AdminFilter());
 
         DisposableServer disposableServer = HttpServer.create()
                 .route(dispatcher.setHandleMethodRoute())
