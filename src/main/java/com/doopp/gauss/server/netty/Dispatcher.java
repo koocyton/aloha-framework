@@ -4,6 +4,7 @@ import com.doopp.gauss.common.defined.CommonError;
 import com.doopp.gauss.common.exception.CommonException;
 import com.doopp.gauss.common.message.CommonResponse;
 import com.doopp.gauss.server.filter.iFilter;
+import com.doopp.gauss.server.resource.RequestAttribute;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
@@ -138,8 +139,11 @@ public class Dispatcher<F> {
         Map<String, String> formParams = formParams(request, content);
         for (Parameter parameter : method.getParameters()) {
             Class<?> parameterClass = parameter.getType();
+            if (parameterClass == RequestAttribute.class) {
+
+            }
             // CookieParam
-            if (parameter.getAnnotation(CookieParam.class) != null) {
+            else if (parameter.getAnnotation(CookieParam.class) != null) {
                 String annotationKey = parameter.getAnnotation(CookieParam.class).value();
                 objectList.add(getParamTypeValue(request.cookies().get(annotationKey).toString(), parameterClass));
             }
