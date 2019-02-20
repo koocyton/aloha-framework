@@ -9,10 +9,13 @@ import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
+import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.HttpServerRoutes;
 
 import javax.ws.rs.*;
@@ -63,51 +66,22 @@ public class Dispatcher {
                             // GET
                             if (method.isAnnotationPresent(GET.class)) {
                                 log.info("GET " + requestPath);
-                                routes.get(requestPath, (req, resp) -> {
-                                    try {
-                                        return resp.sendString(Mono.just(
-                                                new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, null)))
-                                        ));
-                                    } catch (Exception e) {
-                                        return resp.sendString(Mono.just(e.getMessage()));
-                                    }
-                                });
+                                routes.get(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
                             }
                             // POST
                             else if (method.isAnnotationPresent(POST.class)) {
                                 log.info("POST " + requestPath);
-                                routes.post(requestPath, (req, resp) -> {
-                                    // return resp.sendString(Mono.just("aaa"));
-                                    return resp.sendString(
-                                            req
-                                                    // .withConnection(c -> {
-                                                    //     c.channel().attr(AttributeKey.valueOf("currentUser")).set("abc");
-                                                    // })
-                                                    .receive()
-                                                    .aggregate()
-                                                    .retain()
-                                                    .map(byteBuf -> {
-                                                        try {
-                                                            return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
-                                                        } catch (Exception e) {
-                                                            e.printStackTrace();
-                                                            return new GsonBuilder().create().toJson(new CommonResponse<>(
-                                                                    new CommonException(CommonError.FAIL.code(), e.getMessage())
-                                                            ));
-                                                        }
-                                                    })
-                                    );
-                                });
+                                routes.post(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
                             }
                             // DELETE
                             else if (method.isAnnotationPresent(DELETE.class)) {
                                 log.info("DELETE " + requestPath);
-                                routes.delete(requestPath, (req, resp) -> resp.sendString(Mono.just(requestPath)));
+                                routes.delete(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
                             }
                             // UPDATE
                             else if (method.isAnnotationPresent(PUT.class)) {
                                 log.info("PUT " + requestPath);
-                                routes.put(requestPath, (req, resp) -> resp.sendString(Mono.just(requestPath)));
+                                routes.put(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
                             }
                         }
                     }
@@ -117,6 +91,35 @@ public class Dispatcher {
                 e.printStackTrace();
             }
         };
+    }
+
+    private <T> Publisher<Void> publish(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+
+        if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {
+            try {
+                return resp.sendString(Mono.just(
+                        new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, null)))
+                ));
+            } catch (Exception e) {
+                return resp.sendString(Mono.just(e.getMessage()));
+            }
+        }
+
+        return resp.sendString(
+                req.receive()
+                        .aggregate()
+                        .retain()
+                        .map(byteBuf -> {
+                            try {
+                                return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                return new GsonBuilder().create().toJson(new CommonResponse<>(
+                                        new CommonException(CommonError.FAIL.code(), e.getMessage())
+                                ));
+                            }
+                        })
+        );
     }
 
     private Object[] getMethodParams(Method method, HttpServerRequest request, ByteBuf content) {
