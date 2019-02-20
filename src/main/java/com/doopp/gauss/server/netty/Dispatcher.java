@@ -1,46 +1,25 @@
 package com.doopp.gauss.server.netty;
 
-import com.doopp.gauss.common.entity.User;
-import com.doopp.gauss.common.message.OAuthRequest;
-import com.doopp.gauss.common.message.request.LoginRequest;
 import com.doopp.gauss.server.filter.iFilter;
-import com.google.common.io.Files;
-import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.handler.codec.http.multipart.*;
-import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.io.ResolverUtil;
-import org.apache.ibatis.io.VFS;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerRoutes;
-
 import javax.ws.rs.*;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.lang.reflect.Type;
-import java.net.URI;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-
 
 @Slf4j
 public class Dispatcher {
@@ -98,34 +77,16 @@ public class Dispatcher {
                                 routes.post(requestPath, (req, resp) -> {
                                     // return resp.sendString(Mono.just("aaa"));
                                     return resp.sendString(
-                                        Mono.just("bbq")
-
-//                                        req.receive().map(byteBuf -> {
-//                                            byte[] bytes = new byte[byteBuf.readableBytes()];
-//                                            byteBuf.readBytes(bytes);
-//                                            log.info("bytes {}", req.params());
-//                                            return "abc";
-//                                        }).map(str->{
-//                                            log.info("str {}", str);
-//                                            return str;
-//                                        })
-
-//                                        req.receiveContent().map(httpContent -> {
-//                                            //ByteBuf bf = httpContent.content();
-//                                            //byte[] bytes = new byte[bf.readableBytes()];
-//                                            //bf.readBytes(bytes);
-//                                            //String body = new String(bytes, StandardCharsets.UTF_8);
-//                                            //log.info("body {}", body);
-//                                            // getRequestParams(req, httpContent.content());
-//                                            //Type type = new TypeToken<OAuthRequest<LoginRequest>>() {}.getType();
-//                                            //OAuthRequest<LoginRequest> requestObject = new GsonBuilder().create().fromJson(body, type);
-//                                            log.info(" >> dd");
-//                                            try {
-//                                                return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, httpContent.content())));
-//                                            } catch (Exception e) {
-//                                                return new GsonBuilder().create().toJson(e);
-//                                            }
-//                                        })
+                                        req.receive()
+                                                .aggregate()
+                                                .retain()
+                                                .map(byteBuf -> {
+                                                    try {
+                                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
+                                                    } catch (Exception e) {
+                                                        return new GsonBuilder().create().toJson(e);
+                                                    }
+                                                })
                                     );
                                 });
                             }
@@ -142,6 +103,7 @@ public class Dispatcher {
                         }
                     }
                 }
+                routes.get("/**", (new AppOutbound())::sendStatic);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -150,7 +112,8 @@ public class Dispatcher {
 
     private Object[] getMethodParams(Method method, HttpServerRequest request, ByteBuf content) {
         ArrayList<Object> objectList = new ArrayList<>();
-        Map<String, String> questParams = getRequestParams(request, content);
+        Map<String, String> questParams = queryParams(request);
+        Map<String, String> formParams  = formParams(request, content);
         for (Parameter parameter : method.getParameters()) {
             Class parameterClass;
             try {
@@ -158,18 +121,42 @@ public class Dispatcher {
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException();
             }
+            // CookieParam
+            if (parameter.getAnnotation(CookieParam.class) != null) {
+                String annotationKey = parameter.getAnnotation(CookieParam.class).value();
+                objectList.add(getParamTypeValue(request.cookies().get(annotationKey).toString(), parameterClass));
+            }
+            // HeaderParam
+            else if (parameter.getAnnotation(HeaderParam.class) != null) {
+                String annotationKey = parameter.getAnnotation(HeaderParam.class).value();
+                objectList.add(getParamTypeValue(request.requestHeaders().get(annotationKey), parameterClass));
+            }
             // QueryParam
-            if (parameter.getAnnotation(QueryParam.class) != null) {
-                String requestParamKey = parameter.getAnnotation(QueryParam.class).value();
-                objectList.add(getParamTypeValue(questParams.get(requestParamKey), parameterClass));
+            else if (parameter.getAnnotation(QueryParam.class) != null) {
+                String annotationKey = parameter.getAnnotation(QueryParam.class).value();
+                objectList.add(getParamTypeValue(questParams.get(annotationKey), parameterClass));
             }
             // PathParam
             else if (parameter.getAnnotation(PathParam.class) != null) {
-                String requestParamKey = parameter.getAnnotation(PathParam.class).value();
-                objectList.add(getParamTypeValue(request.param(requestParamKey), parameterClass));
+                String annotationKey = parameter.getAnnotation(PathParam.class).value();
+                objectList.add(getParamTypeValue(request.param(annotationKey), parameterClass));
+            }
+            // FormParam
+            else if (parameter.getAnnotation(FormParam.class) != null) {
+                String annotationKey = parameter.getAnnotation(FormParam.class).value();
+                objectList.add(getParamTypeValue(formParams.get(annotationKey), parameterClass));
+            }
+            // BeanParam
+            else if (parameter.getAnnotation(BeanParam.class) != null) {
+                byte[] byteArray = new byte[content.capacity()];
+                content.readBytes(byteArray);
+                objectList.add((new Gson()).fromJson(new String(byteArray), parameterClass));
+            }
+            // default
+            else {
+                objectList.add(parameterClass.cast(null));
             }
         }
-        // log.info("objectList.toArray() {}", objectList.toArray());
         return objectList.toArray();
     }
 
@@ -228,8 +215,8 @@ public class Dispatcher {
         return handleClassesName;
     }
 
-    // 处理 Get Post 请求
-    private Map<String, String> getRequestParams(HttpServerRequest request, ByteBuf content) {
+    // Get 请求
+    private Map<String, String> queryParams(HttpServerRequest request) {
         Map<String, String> requestParams = new HashMap<>();
         // Query Params
         QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
@@ -237,15 +224,17 @@ public class Dispatcher {
         for (Map.Entry<String, List<String>> next : params.entrySet()) {
             requestParams.put(next.getKey(), next.getValue().get(0));
         }
+        return requestParams;
+    }
+
+    // 简单的 Post 请求
+    private Map<String, String> formParams(HttpServerRequest request, ByteBuf content) {
+        Map<String, String> requestParams = new HashMap<>();
         if (content!=null) {
             // POST Params
-            byte[] byteArray = new byte[content.capacity()];
-            content.readBytes(byteArray);
-            DefaultHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), Unpooled.wrappedBuffer(byteArray));
+            FullHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), content);
             HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), dhr);
             List<InterfaceHttpData> postData = postDecoder.getBodyHttpDatas();
-            log.info(" >>> postData");
-            log.info(" - postData {}", new String(byteArray));
             for (InterfaceHttpData data : postData) {
                 if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                     MemoryAttribute attribute = (MemoryAttribute) data;
@@ -254,11 +243,5 @@ public class Dispatcher {
             }
         }
         return requestParams;
-    }
-
-    private String byteBufToString(ByteBuf byteBuf) {
-        byte[] byteArray = new byte[byteBuf.capacity()];
-        byteBuf.readBytes(byteArray);
-        return new String(byteArray);
     }
 }

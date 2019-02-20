@@ -10,6 +10,7 @@ import com.doopp.gauss.common.message.request.RegisterRequest;
 import com.doopp.gauss.common.message.response.SessionToken;
 import com.google.inject.Inject;
 
+import javax.ws.rs.BeanParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 
@@ -20,7 +21,7 @@ public class OAuthHandle {
 
     @POST
     @Path("/api/login")
-    public CommonResponse<SessionToken> login(OAuthRequest<LoginRequest> commonRequest) throws CommonException {
+    public CommonResponse<SessionToken> login(@BeanParam OAuthRequest<LoginRequest> commonRequest) throws CommonException {
         LoginRequest loginRequest = commonRequest.getData();
         oauthService.checkLoginRequest(commonRequest);
         User user = oauthService.userLogin(loginRequest.getAccount(), loginRequest.getPassword());
@@ -30,7 +31,7 @@ public class OAuthHandle {
 
     @POST
     @Path("/api/register")
-    public CommonResponse<SessionToken> register(OAuthRequest<RegisterRequest> commonRequest) throws CommonException {
+    public CommonResponse<SessionToken> register(@BeanParam OAuthRequest<RegisterRequest> commonRequest) throws CommonException {
         RegisterRequest registerRequest = commonRequest.getData();
         oauthService.checkRegisterRequest(commonRequest);
         User user = oauthService.userRegister(registerRequest.getAccount(), registerRequest.getPassword());
