@@ -125,12 +125,7 @@ public class Dispatcher {
         Map<String, String> questParams = queryParams(request);
         Map<String, String> formParams  = formParams(request, content);
         for (Parameter parameter : method.getParameters()) {
-            Class parameterClass;
-            try {
-                parameterClass = Class.forName(parameter.getType().getTypeName());
-            } catch (ClassNotFoundException e) {
-                throw new RuntimeException();
-            }
+            Class parameterClass = parameter.getType();
             // CookieParam
             if (parameter.getAnnotation(CookieParam.class) != null) {
                 String annotationKey = parameter.getAnnotation(CookieParam.class).value();
@@ -158,10 +153,12 @@ public class Dispatcher {
             }
             // BeanParam
             else if (parameter.getAnnotation(BeanParam.class) != null) {
+                // log.info("{}", parameterClass);
                 byte[] byteArray = new byte[content.capacity()];
                 content.readBytes(byteArray);
                 Type type = new TypeToken<OAuthRequest<LoginRequest>>(){}.getType();
                 objectList.add((new Gson()).fromJson(new String(byteArray), type));
+
             }
             // default
             else {
