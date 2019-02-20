@@ -3,12 +3,9 @@ package com.doopp.gauss.server.netty;
 import com.doopp.gauss.common.defined.CommonError;
 import com.doopp.gauss.common.exception.CommonException;
 import com.doopp.gauss.common.message.CommonResponse;
-import com.doopp.gauss.common.message.OAuthRequest;
-import com.doopp.gauss.common.message.request.LoginRequest;
 import com.doopp.gauss.server.filter.iFilter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.*;
@@ -125,7 +122,7 @@ public class Dispatcher {
         Map<String, String> questParams = queryParams(request);
         Map<String, String> formParams  = formParams(request, content);
         for (Parameter parameter : method.getParameters()) {
-            Class parameterClass = parameter.getType();
+            Class<?> parameterClass = parameter.getType();
             // CookieParam
             if (parameter.getAnnotation(CookieParam.class) != null) {
                 String annotationKey = parameter.getAnnotation(CookieParam.class).value();
@@ -153,12 +150,10 @@ public class Dispatcher {
             }
             // BeanParam
             else if (parameter.getAnnotation(BeanParam.class) != null) {
-                // log.info("{}", parameterClass);
                 byte[] byteArray = new byte[content.capacity()];
                 content.readBytes(byteArray);
-                Type type = new TypeToken<OAuthRequest<LoginRequest>>(){}.getType();
-                objectList.add((new Gson()).fromJson(new String(byteArray), type));
-
+                // Type type = TypeToken.get(parameter.getAnnotatedType().getType()).getType();
+                objectList.add((new Gson()).fromJson(new String(byteArray), parameter.getAnnotatedType().getType()));
             }
             // default
             else {
