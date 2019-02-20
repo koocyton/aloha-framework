@@ -1,99 +1,83 @@
 package com.doopp.gauss.server.netty;
 
-import com.doopp.gauss.api.handle.OAuthHandle;
-import com.doopp.gauss.common.defined.CommonError;
 import com.doopp.gauss.common.exception.CommonException;
-import com.doopp.gauss.common.message.OAuthRequest;
-import com.doopp.gauss.common.message.request.LoginRequest;
-import com.doopp.gauss.server.filter.iFilter;
 import com.doopp.gauss.server.message.CommonResponse;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;
 import reactor.netty.NettyOutbound;
-import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
-import reactor.netty.http.websocket.WebsocketInbound;
-import reactor.netty.http.websocket.WebsocketOutbound;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Type;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.function.Function;
 
 @Slf4j
-public class AppOutbound {
+public class StaticHandle {
 
-    private final HashMap<String, iFilter> filters = new HashMap<>();
-
-    private Injector injector;
-
-    public void setInjector(Injector injector) {
-        this.injector = injector;
-    }
-
-    public void addFilter(String path, Class<? extends iFilter> filterClass) {
-        this.filters.put(path, injector.getInstance(filterClass));
-    }
-
-    private boolean doFilter(HttpServerRequest request, HttpServerResponse response) {
-        String uri = URI.create(request.uri()).getPath();
-        for(String key : this.filters.keySet()) {
-            int keyLength = key.length();
-            if (uri.substring(0, keyLength).equals(key)) {
-                 return this.filters.get(key).doFilter(request, response);
-            }
-        }
-        return true;
-    }
-
-    public <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, Function<Injector, T> function) {
-        return out.options(NettyPipeline.SendOptions::flushOnEach)
-                .sendString(in
-                        .receiveFrames()
-                        .map(frame -> {
-                            if (frame instanceof TextWebSocketFrame) {
-                                return new GsonBuilder().create().toJson(function.apply(injector));
-                            }
-                            return "\n";
-                        })
-                );
-    }
-
-    public <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Function<Injector, T> function) {
-        if (!this.doFilter(req, resp)) {
-            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
-        }
-        String json = new GsonBuilder().create().toJson(function.apply(injector));
-        return resp
-                .status(HttpResponseStatus.OK)
-                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString(Mono.just(json));
-    }
+//    private final HashMap<String, iFilter> filters = new HashMap<>();
+//
+//    private Injector injector;
+//
+//    public void setInjector(Injector injector) {
+//        this.injector = injector;
+//    }
+//
+//    public void addFilter(String path, Class<? extends iFilter> filterClass) {
+//        this.filters.put(path, injector.getInstance(filterClass));
+//    }
+//
+//    private boolean doFilter(HttpServerRequest request, HttpServerResponse response) {
+//        String uri = URI.create(request.uri()).getPath();
+//        for(String key : this.filters.keySet()) {
+//            int keyLength = key.length();
+//            if (uri.substring(0, keyLength).equals(key)) {
+//                 return this.filters.get(key).doFilter(request, response);
+//            }
+//        }
+//        return true;
+//    }
+//
+//    public <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, Function<Injector, T> function) {
+//        return out.options(NettyPipeline.SendOptions::flushOnEach)
+//                .sendString(in
+//                        .receiveFrames()
+//                        .map(frame -> {
+//                            if (frame instanceof TextWebSocketFrame) {
+//                                return new GsonBuilder().create().toJson(function.apply(injector));
+//                            }
+//                            return "\n";
+//                        })
+//                );
+//    }
+//
+//    public <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Function<Injector, T> function) {
+//        if (!this.doFilter(req, resp)) {
+//            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
+//        }
+//        String json = new GsonBuilder().create().toJson(function.apply(injector));
+//        return resp
+//                .status(HttpResponseStatus.OK)
+//                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+//                .sendString(Mono.just(json));
+//    }
 
     public NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
-        if (!this.doFilter(req, resp)) {
-            return this.sendNotFoundPage(resp, new CommonException(CommonError.WRONG_SESSION));
-        }
+//        if (!this.doFilter(req, resp)) {
+//            return this.sendNotFoundPage(resp, new CommonException(CommonError.WRONG_SESSION));
+//        }
         String requestUri = (req.uri().equals("/") || req.uri().equals("")) ? "/index.html" : req.uri();
         String requirePath = "/public" + requestUri;
 

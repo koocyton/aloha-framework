@@ -1,8 +1,14 @@
 package com.doopp.gauss.server.netty;
 
+import com.doopp.gauss.common.defined.CommonError;
+import com.doopp.gauss.common.exception.CommonException;
+import com.doopp.gauss.common.message.CommonResponse;
+import com.doopp.gauss.common.message.OAuthRequest;
+import com.doopp.gauss.common.message.request.LoginRequest;
 import com.doopp.gauss.server.filter.iFilter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.*;
@@ -16,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
@@ -84,7 +91,10 @@ public class Dispatcher {
                                                     try {
                                                         return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
                                                     } catch (Exception e) {
-                                                        return new GsonBuilder().create().toJson(e);
+                                                        e.printStackTrace();
+                                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
+                                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
+                                                        ));
                                                     }
                                                 })
                                     );
@@ -103,7 +113,7 @@ public class Dispatcher {
                         }
                     }
                 }
-                routes.get("/**", (new AppOutbound())::sendStatic);
+                routes.get("/**", (new StaticHandle())::sendStatic);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -150,7 +160,8 @@ public class Dispatcher {
             else if (parameter.getAnnotation(BeanParam.class) != null) {
                 byte[] byteArray = new byte[content.capacity()];
                 content.readBytes(byteArray);
-                objectList.add((new Gson()).fromJson(new String(byteArray), parameterClass));
+                Type type = new TypeToken<OAuthRequest<LoginRequest>>(){}.getType();
+                objectList.add((new Gson()).fromJson(new String(byteArray), type));
             }
             // default
             else {

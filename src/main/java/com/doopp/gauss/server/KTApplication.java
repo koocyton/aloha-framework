@@ -1,26 +1,14 @@
 package com.doopp.gauss.server;
 
 import com.doopp.gauss.server.netty.Dispatcher;
-import com.doopp.gauss.server.route.AdminRoute;
-import com.doopp.gauss.server.route.ApiRoute;
 import com.doopp.gauss.server.application.ApplicationProperties;
-import com.doopp.gauss.server.filter.AdminFilter;
-import com.doopp.gauss.server.filter.ApiFilter;
 import com.doopp.gauss.server.module.ApplicationModule;
 import com.doopp.gauss.server.module.CustomMyBatisModule;
 import com.doopp.gauss.server.module.RedisModule;
-import com.doopp.gauss.server.netty.AppOutbound;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpRequest;
-import org.mybatis.guice.MyBatisModule;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
-
-import java.io.IOException;
 
 public class KTApplication {
 

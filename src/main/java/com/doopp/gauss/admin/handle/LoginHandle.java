@@ -7,6 +7,7 @@ import com.doopp.gauss.common.message.response.Authentication;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import reactor.netty.http.server.HttpServerRequest;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -33,9 +34,8 @@ public class LoginHandle {
     }
 
     @GET
-    @Path("/admin/api/user")
-    public CommonResponse<User> abc(@QueryParam("id") Long id) {
-        log.info("{}", id);
-        return new CommonResponse<>(userDao.getById(id));
+    @Path("/admin/api/manager")
+    public CommonResponse<User> sessionManager() {
+        return new CommonResponse<>(userDao.getById(1L));
     }
 }
