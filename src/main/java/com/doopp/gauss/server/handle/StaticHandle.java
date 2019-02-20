@@ -1,4 +1,4 @@
-package com.doopp.gauss.server.netty;
+package com.doopp.gauss.server.handle;
 
 import com.doopp.gauss.common.exception.CommonException;
 import com.doopp.gauss.server.message.CommonResponse;

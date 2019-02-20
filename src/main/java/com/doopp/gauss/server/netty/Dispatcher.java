@@ -4,6 +4,8 @@ import com.doopp.gauss.common.defined.CommonError;
 import com.doopp.gauss.common.exception.CommonException;
 import com.doopp.gauss.common.message.CommonResponse;
 import com.doopp.gauss.server.filter.iFilter;
+import com.doopp.gauss.server.handle.StaticHandle;
+import com.doopp.gauss.server.handle.WebSocketServerHandle;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -12,9 +14,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
+import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.HttpServerRoutes;
@@ -22,6 +29,7 @@ import reactor.netty.http.server.HttpServerRoutes;
 import javax.ws.rs.*;
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -57,31 +65,61 @@ public class Dispatcher<F> {
                 for (String handleClassName : handleClassesName) {
                     // handle
                     Object handleObject = injector.getInstance(Class.forName(handleClassName));
+                    Path pathAnnotation = handleObject.getClass().getAnnotation(Path.class);
+                    String rootPath = (pathAnnotation==null) ? "" : pathAnnotation.value();
+                    // if websocket
+                    if (handleObject instanceof WebSocketServerHandle) {
+                        log.info("    WS " + rootPath + " → " + handleClassName);
+                        routes.ws(rootPath, (in, out) -> {
+                            return out.withConnection(c->{
+                                    ((WebSocketServerHandle) handleObject).onConnect(c.channel());
+                                })
+                                .options(NettyPipeline.SendOptions::flushOnEach)
+                                .sendString(in.receiveFrames()
+                                    .map(frame -> {
+                                        if (frame instanceof TextWebSocketFrame) {
+                                            return ((WebSocketServerHandle) handleObject).onFullTextMessage();
+                                        }
+                                        // else if (frame instanceof BinaryWebSocketFrame) {
+                                        //     return ((WebSocketServerHandle) handleObject).onFullBinaryMessage();
+                                        // }
+                                        // else if (frame instanceof PingWebSocketFrame) {
+                                        //     return ((WebSocketServerHandle) handleObject).onFullBinaryMessage();
+                                        // }
+                                        // else if (frame instanceof PongWebSocketFrame) {
+                                        //     return ((WebSocketServerHandle) handleObject).onFullBinaryMessage();
+                                        // }
+                                        return "";
+                                    })
+                                );
+                        });
+                        continue;
+                    }
                     // methods for handle
                     Method[] handleMethods = handleObject.getClass().getMethods();
                     // loop methods
                     for (Method method : handleMethods) {
                         // if have request path
                         if (method.isAnnotationPresent(Path.class)) {
-                            String requestPath = method.getAnnotation(Path.class).value();
+                            String requestPath = rootPath + method.getAnnotation(Path.class).value();
                             // GET
                             if (method.isAnnotationPresent(GET.class)) {
-                                log.info("GET " + requestPath);
+                                log.info("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.get(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
                             }
                             // POST
                             else if (method.isAnnotationPresent(POST.class)) {
-                                log.info("POST " + requestPath);
+                                log.info("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.post(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
                             }
                             // DELETE
                             else if (method.isAnnotationPresent(DELETE.class)) {
-                                log.info("DELETE " + requestPath);
+                                log.info("DELETE " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.delete(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
                             }
                             // UPDATE
                             else if (method.isAnnotationPresent(PUT.class)) {
-                                log.info("PUT " + requestPath);
+                                log.info("   PUT " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.put(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
                             }
                         }
@@ -109,7 +147,7 @@ public class Dispatcher<F> {
         if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {
             try {
                 return resp.sendString(Mono.just(
-                        new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, null)))
+                    new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, null)))
                 ));
             } catch (Exception e) {
                 return resp.sendString(Mono.just(e.getMessage()));
@@ -117,19 +155,19 @@ public class Dispatcher<F> {
         }
 
         return resp.sendString(
-                req.receive()
-                        .aggregate()
-                        .retain()
-                        .map(byteBuf -> {
-                            try {
-                                return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                return new GsonBuilder().create().toJson(new CommonResponse<>(
-                                        new CommonException(CommonError.FAIL.code(), e.getMessage())
-                                ));
-                            }
-                        })
+            req.receive()
+                .aggregate()
+                .retain()
+                .map(byteBuf -> {
+                    try {
+                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return new GsonBuilder().create().toJson(new CommonResponse<>(
+                            new CommonException(CommonError.FAIL.code(), e.getMessage())
+                        ));
+                    }
+                })
         );
     }
 
