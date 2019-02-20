@@ -1,17 +1,17 @@
 package com.doopp.gauss.server.handle;
 
+import io.netty.channel.Channel;
+
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
 
-
-
     @Override
-    public void onConnect() {
+    public void onConnect(Channel channel) {
 
     }
 
     @Override
-    public void onFullTextMessage() {
-
+    public String onFullTextMessage() {
+        return "";
     }
 
     @Override
