@@ -147,7 +147,7 @@ public class Dispatcher<F> {
         if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {
             try {
                 return resp.sendString(Mono.just(
-                    new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, null)))
+                    new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, null)))
                 ));
             } catch (Exception e) {
                 return resp.sendString(Mono.just(e.getMessage()));
@@ -160,7 +160,7 @@ public class Dispatcher<F> {
                 .retain()
                 .map(byteBuf -> {
                     try {
-                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, byteBuf)));
+                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
                     } catch (Exception e) {
                         e.printStackTrace();
                         return new GsonBuilder().create().toJson(new CommonResponse<>(
@@ -171,14 +171,23 @@ public class Dispatcher<F> {
         );
     }
 
-    private Object[] getMethodParams(Method method, HttpServerRequest request, ByteBuf content) {
+    private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, ByteBuf content) {
         ArrayList<Object> objectList = new ArrayList<>();
         Map<String, String> questParams = queryParams(request);
         Map<String, String> formParams = formParams(request, content);
         for (Parameter parameter : method.getParameters()) {
             Class<?> parameterClass = parameter.getType();
+            // RequestAttribute
             if (parameterClass == RequestAttribute.class) {
-
+                objectList.add(new RequestAttribute());
+            }
+            // request
+            else if (parameterClass == HttpServerRequest.class) {
+                objectList.add(request);
+            }
+            // response
+            else if (parameterClass == HttpServerResponse.class) {
+                objectList.add(response);
             }
             // CookieParam
             else if (parameter.getAnnotation(CookieParam.class) != null) {
