@@ -29,7 +29,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 @Slf4j
-public class Dispatcher {
+public class Dispatcher<F> {
 
     private Injector injector;
 
@@ -95,6 +95,16 @@ public class Dispatcher {
 
     private <T> Publisher<Void> publish(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
 
+        // Filter
+//        String requestPath = method.getAnnotation(Path.class).value();
+//        for(iFilter filter : filters.values()) {
+//            if (requestPath.contains(req.path())) {
+//                if (!filter.doFilter(req, resp)) {
+//                }
+//            }
+//        }
+
+        // Request
         if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {
             try {
                 return resp.sendString(Mono.just(
