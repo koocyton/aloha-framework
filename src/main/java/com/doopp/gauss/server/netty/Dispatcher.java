@@ -69,10 +69,10 @@ public class Dispatcher<F> {
                     Path pathAnnotation = handleObject.getClass().getAnnotation(Path.class);
                     String rootPath = (pathAnnotation==null) ? "" : pathAnnotation.value();
                     // if websocket
+                    AtomicReference<Channel> channel = new AtomicReference<>();
                     if (handleObject instanceof WebSocketServerHandle) {
                         log.info("    WS " + rootPath + " → " + handleClassName);
                         routes.ws(rootPath, (in, out) -> {
-                            AtomicReference<Channel> channel = new AtomicReference<>();
                             return out.withConnection(c->{
                                     channel.set(c.channel());
                                     ((WebSocketServerHandle) handleObject).onConnect(c.channel());
