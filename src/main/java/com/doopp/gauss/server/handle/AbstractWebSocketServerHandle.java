@@ -3,8 +3,13 @@ package com.doopp.gauss.server.handle;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelId;
+
+import java.util.HashMap;
 
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
+
+    protected HashMap<ChannelId, Channel> channels = new HashMap<>();
 
     @Override
     public void onConnect(Channel channel) {
