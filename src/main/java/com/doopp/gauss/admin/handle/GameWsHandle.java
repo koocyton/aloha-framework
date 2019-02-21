@@ -10,7 +10,7 @@ import javax.ws.rs.Path;
 @Slf4j
 @Path("/game")
 @Singleton
-public class GameHandle extends AbstractWebSocketServerHandle {
+public class GameWsHandle extends AbstractWebSocketServerHandle {
 
     @Override
     public void onConnect(Channel channel) {
