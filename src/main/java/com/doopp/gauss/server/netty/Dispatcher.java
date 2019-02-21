@@ -75,21 +75,21 @@ public class Dispatcher<F> {
                                     ((WebSocketServerHandle) handleObject).onConnect(c.channel());
                                 })
                                 .options(NettyPipeline.SendOptions::flushOnEach)
-                                .sendString(in.receiveFrames()
+                                .sendObject(in.receiveFrames()
                                     .map(frame -> {
                                         if (frame instanceof TextWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onFullTextMessage();
+                                            return ((WebSocketServerHandle) handleObject).onTextMessage();
                                         }
-                                        // else if (frame instanceof BinaryWebSocketFrame) {
-                                        //     return ((WebSocketServerHandle) handleObject).onFullBinaryMessage();
-                                        // }
-                                        // else if (frame instanceof PingWebSocketFrame) {
-                                        //     return ((WebSocketServerHandle) handleObject).onFullBinaryMessage();
-                                        // }
-                                        // else if (frame instanceof PongWebSocketFrame) {
-                                        //     return ((WebSocketServerHandle) handleObject).onFullBinaryMessage();
-                                        // }
-                                        return "";
+                                        else if (frame instanceof BinaryWebSocketFrame) {
+                                            return ((WebSocketServerHandle) handleObject).onBinaryMessage();
+                                        }
+                                        else if (frame instanceof PingWebSocketFrame) {
+                                            return ((WebSocketServerHandle) handleObject).onPingMessage();
+                                        }
+                                        else if (frame instanceof PongWebSocketFrame) {
+                                            return ((WebSocketServerHandle) handleObject).onPongMessage();
+                                        }
+                                        return null;
                                     })
                                 );
                         });

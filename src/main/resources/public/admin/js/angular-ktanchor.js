@@ -1,5 +1,39 @@
 "use strict";
 
+let WebSocketService = function(url) {
+
+    let protocol = /^https/.test(window.location.protocol) ? "wss\:\/\/" : "ws\:\/\/";
+    this.ws = /^ws/.test(url) ? new WebSocket(url) : new WebSocket(protocol + window.location.host + url);
+
+    this.onOpen = function(callOpen) {
+        if (typeof callOpen==="function") { this.ws.onopen = callOpen; }
+        return this;
+    };
+
+    this.onClose = function(callClose) {
+        if (typeof callClose==="function") { this.ws.onclose = callClose; }
+        return this;
+    };
+
+    this.onError = function(callError) {
+        if (typeof callError==="function") { this.ws.onerror = callError; }
+        return this;
+    };
+
+    this.onMessage = function(callMessage) {
+        if (typeof callMessage==="function") { this.ws.onmessage = callMessage; }
+        return this;
+    };
+
+    this.send = function(message) {
+        this.ws.send(message);
+    };
+
+    this.close = function() {
+        try { this.ws.close(); } catch(e) { ; }
+    };
+};
+
 /** login app && login controller **/
 angular.module('ngLoginApp', ['ui.bootstrap', 'ngCookies'])
     .controller('ngLoginController', ['$scope', '$http', '$cookies', function ($scope, $http, $cookies) {
@@ -39,6 +73,18 @@ angular.module('ngLoginApp', ['ui.bootstrap', 'ngCookies'])
         });
     }]
 );
+
+/** logout **/
+angular.module('ngLogoutApp', []).run(function() {
+        let ws = new WebSocketService("/game");
+        ws.onMessage(function (e) {
+            console.log(e);
+        });
+        setInterval(function(){
+            console.log("ws.send(\"hello\")");
+            ws.send("hello");
+        }, 1000);
+    });
 
 /** 高亮代码块 **/
 let highlightBlock = function() {

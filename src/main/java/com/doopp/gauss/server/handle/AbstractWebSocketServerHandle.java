@@ -1,6 +1,9 @@
 package com.doopp.gauss.server.handle;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
 
@@ -10,13 +13,28 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
     }
 
     @Override
-    public String onFullTextMessage() {
-        return "";
+    public void onMessage() {
+
     }
 
     @Override
-    public void onMessage() {
+    public String onTextMessage() {
+        return null;
+    }
 
+    @Override
+    public ByteBuf onBinaryMessage() {
+        return Unpooled.buffer(0);
+    }
+
+    @Override
+    public ByteBuf onPingMessage() {
+        return Unpooled.buffer(0);
+    }
+
+    @Override
+    public ByteBuf onPongMessage() {
+        return Unpooled.buffer(0);
     }
 
     @Override
