@@ -16,9 +16,8 @@ public class GameHandle extends AbstractWebSocketServerHandle {
     }
 
     @Override
-    public String onTextMessage() {
+    public String onTextMessage(Channel channel) {
+        log.info("{}", channel.id());
         return "GameHandle : hello";
     }
-
-
 }

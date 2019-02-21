@@ -7,17 +7,17 @@ public interface WebSocketServerHandle<T> {
 
     void onConnect(Channel channel);
 
-    void onMessage();
+    void onMessage(Channel channel);
 
-    String onTextMessage();
+    String onTextMessage(Channel channel);
 
-    T onBinaryMessage();
+    T onBinaryMessage(Channel channel);
 
-    ByteBuf onPingMessage();
+    ByteBuf onPingMessage(Channel channel);
 
-    ByteBuf onPongMessage();
+    ByteBuf onPongMessage(Channel channel);
 
-    void onClose();
+    void onClose(Channel channel);
 
-    void onError();
+    void onError(Channel channel);
 }

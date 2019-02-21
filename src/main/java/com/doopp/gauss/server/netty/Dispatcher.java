@@ -11,6 +11,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
@@ -29,10 +30,10 @@ import reactor.netty.http.server.HttpServerRoutes;
 import javax.ws.rs.*;
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -71,23 +72,25 @@ public class Dispatcher<F> {
                     if (handleObject instanceof WebSocketServerHandle) {
                         log.info("    WS " + rootPath + " → " + handleClassName);
                         routes.ws(rootPath, (in, out) -> {
+                            AtomicReference<Channel> channel = new AtomicReference<>();
                             return out.withConnection(c->{
+                                    channel.set(c.channel());
                                     ((WebSocketServerHandle) handleObject).onConnect(c.channel());
                                 })
                                 .options(NettyPipeline.SendOptions::flushOnEach)
                                 .sendObject(in.receiveFrames()
                                     .map(frame -> {
                                         if (frame instanceof TextWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onTextMessage();
+                                            return ((WebSocketServerHandle) handleObject).onTextMessage(channel.get());
                                         }
                                         else if (frame instanceof BinaryWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onBinaryMessage();
+                                            return ((WebSocketServerHandle) handleObject).onBinaryMessage(channel.get());
                                         }
                                         else if (frame instanceof PingWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onPingMessage();
+                                            return ((WebSocketServerHandle) handleObject).onPingMessage(channel.get());
                                         }
                                         else if (frame instanceof PongWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onPongMessage();
+                                            return ((WebSocketServerHandle) handleObject).onPongMessage(channel.get());
                                         }
                                         return null;
                                     })
