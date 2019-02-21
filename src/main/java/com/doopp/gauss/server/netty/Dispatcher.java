@@ -15,10 +15,7 @@ import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.*;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
@@ -32,20 +29,22 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.charset.Charset;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 @Slf4j
-public class Dispatcher<F> {
+public class Dispatcher {
 
     private Injector injector;
 
     private Map<String, iFilter> filters = new HashMap<>();
 
     private Set<String> handlePackages = new HashSet<>();
+
+    private Map<String, Channel> handles = new HashMap<>();
 
     public void setInjector(Injector injector) {
         this.injector = injector;
@@ -69,31 +68,39 @@ public class Dispatcher<F> {
                     Path pathAnnotation = handleObject.getClass().getAnnotation(Path.class);
                     String rootPath = (pathAnnotation==null) ? "" : pathAnnotation.value();
                     // if websocket
-                    AtomicReference<Channel> channel = new AtomicReference<>();
                     if (handleObject instanceof WebSocketServerHandle) {
                         log.info("    WS " + rootPath + " → " + handleClassName);
                         routes.ws(rootPath, (in, out) -> {
                             return out.withConnection(c->{
-                                    channel.set(c.channel());
+                                    String handleKey = in.headers().get("Sec-WebSocket-Key");
+                                    handles.put(handleKey, c.channel());
                                     ((WebSocketServerHandle) handleObject).onConnect(c.channel());
                                 })
                                 .options(NettyPipeline.SendOptions::flushOnEach)
-                                .sendObject(in.receiveFrames()
-                                    .map(frame -> {
-                                        if (frame instanceof TextWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onTextMessage(channel.get());
-                                        }
-                                        else if (frame instanceof BinaryWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onBinaryMessage(channel.get());
-                                        }
-                                        else if (frame instanceof PingWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onPingMessage(channel.get());
-                                        }
-                                        else if (frame instanceof PongWebSocketFrame) {
-                                            return ((WebSocketServerHandle) handleObject).onPongMessage(channel.get());
-                                        }
-                                        return null;
-                                    })
+                                .sendObject(in
+                                        .aggregateFrames()
+                                        .receiveFrames()
+                                        .map(frame -> {
+                                            String handleKey = in.headers().get("Sec-WebSocket-Key");
+                                            if (frame instanceof TextWebSocketFrame) {
+                                                return ((WebSocketServerHandle) handleObject).onTextMessage(handles.get(handleKey));
+                                            }
+                                            else if (frame instanceof BinaryWebSocketFrame) {
+                                                ((WebSocketServerHandle) handleObject).onBinaryMessage(handles.get(handleKey));
+                                            }
+                                            else if (frame instanceof PingWebSocketFrame) {
+                                                ((WebSocketServerHandle) handleObject).onPingMessage(handles.get(handleKey));
+                                            }
+                                            else if (frame instanceof PongWebSocketFrame) {
+                                                ((WebSocketServerHandle) handleObject).onPongMessage(handles.get(handleKey));
+                                            }
+                                            else if (frame instanceof CloseWebSocketFrame) {
+                                                ((WebSocketServerHandle) handleObject).close(handles.get(handleKey));
+                                                handles.remove(handleKey);
+                                            }
+                                            return "";
+                                        })
+                                        .map(TextWebSocketFrame::new)
                                 );
                         });
                         continue;
@@ -138,13 +145,13 @@ public class Dispatcher<F> {
     private <T> Publisher<Void> publish(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
 
         // Filter
-//        String requestPath = method.getAnnotation(Path.class).value();
-//        for(iFilter filter : filters.values()) {
-//            if (requestPath.contains(req.path())) {
-//                if (!filter.doFilter(req, resp)) {
-//                }
-//            }
-//        }
+        // String requestPath = method.getAnnotation(Path.class).value();
+        // for(iFilter filter : filters.values()) {
+        //     if (requestPath.contains(req.path())) {
+        //         if (!filter.doFilter(req, resp)) {
+        //         }
+        //     }
+        // }
 
         // Request
         if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {

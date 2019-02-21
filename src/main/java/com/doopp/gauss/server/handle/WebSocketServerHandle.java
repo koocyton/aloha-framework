@@ -17,7 +17,7 @@ public interface WebSocketServerHandle<T> {
 
     ByteBuf onPongMessage(Channel channel);
 
-    void onClose(Channel channel);
+    void close(Channel channel);
 
     void onError(Channel channel);
 }

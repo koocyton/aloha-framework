@@ -14,13 +14,16 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
 
     @Override
     public void onConnect(Channel channel) {
-        this.channels.put(channel.id(), channel);
-        log.info("{}", channel.id());
+        super.onConnect(channel);
     }
 
     @Override
     public String onTextMessage(Channel channel) {
-        log.info("{}", channel.id());
-        return "GameHandle : hello";
+        return "onTextMessage : " + channel.id();
+    }
+
+    @Override
+    public void close(Channel channel) {
+        super.close(channel);
     }
 }

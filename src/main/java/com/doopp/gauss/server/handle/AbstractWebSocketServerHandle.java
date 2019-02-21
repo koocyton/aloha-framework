@@ -3,17 +3,13 @@ package com.doopp.gauss.server.handle;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelId;
-
-import java.util.HashMap;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
 
-    protected HashMap<ChannelId, Channel> channels = new HashMap<>();
-
     @Override
     public void onConnect(Channel channel) {
-
+        channel.writeAndFlush(new TextWebSocketFrame("connected " + channel.id()));
     }
 
     @Override
@@ -42,12 +38,19 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
     }
 
     @Override
-    public void onClose(Channel channel) {
-
+    public void close(Channel channel) {
+        if (channel!=null) {
+            try {
+                channel.close();
+            }
+            catch(Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
     public void onError(Channel channel) {
-
+        this.close(channel);
     }
 }
