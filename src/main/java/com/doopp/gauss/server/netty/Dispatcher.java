@@ -25,6 +25,7 @@ import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
 import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -174,32 +175,48 @@ public class Dispatcher {
         //     }
         // }
 
-        // Request
-        if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {
-            try {
-                return resp.sendString(Mono.just(
-                        new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, null)))
-                ));
-            } catch (Exception e) {
-                return resp.sendString(Mono.just(e.getMessage()));
-            }
+        Mono<Object> responseMono = Mono.just(new Object());
+
+        try {
+            responseMono = (Mono<Object>) method.invoke(
+                    handleObject,
+                    getMethodParams(method, req, resp, null)
+            );
+        }
+        catch (Exception e) {
+            responseMono = Mono.just(e.getMessage());
         }
 
-        return resp.sendString(
-                req.receive()
-                        .aggregate()
-                        .retain()
-                        .map(byteBuf -> {
-                            try {
-                                return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                return new GsonBuilder().create().toJson(new CommonResponse<>(
-                                        new CommonException(CommonError.FAIL.code(), e.getMessage())
-                                ));
-                            }
-                        })
-        );
+        resp
+                .addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .sendString();
+
+        // Request
+//        if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {
+//            try {
+//                return resp.sendString(Mono.just(
+//                        new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, null)))
+//                ));
+//            } catch (Exception e) {
+//                return resp.sendString(Mono.just(e.getMessage()));
+//            }
+//        }
+//
+//        return resp.sendString(
+//                req.receive()
+//                        .aggregate()
+//                        .retain()
+//                        .map(byteBuf -> {
+//                            try {
+//                                return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
+//                            } catch (Exception e) {
+//                                e.printStackTrace();
+//                                return new GsonBuilder().create().toJson(new CommonResponse<>(
+//                                        new CommonException(CommonError.FAIL.code(), e.getMessage())
+//                                ));
+//                            }
+//                        })
+//        );
     }
 
     private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, ByteBuf content) {
