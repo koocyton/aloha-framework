@@ -9,6 +9,7 @@ import com.doopp.gauss.server.handle.WebSocketServerHandle;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.*;
@@ -40,9 +41,15 @@ public class Dispatcher {
 
     private Injector injector;
 
-    private Map<String, iFilter> filters = new HashMap<>();
+    private final Map<String, iFilter> filters = new HashMap<>();
 
-    private Set<String> handlePackages = new HashSet<>();
+    private final Set<String> handlePackages = new HashSet<>();
+
+    private final Gson gsonCreate = new GsonBuilder()
+			.serializeNulls()
+			.setDateFormat("yyyy-MM-dd HH:mm:ss")
+			.setLongSerializationPolicy(LongSerializationPolicy.STRING)
+			.create();
 
     public void setInjector(Injector injector) {
         this.injector = injector;
@@ -165,24 +172,15 @@ public class Dispatcher {
     }
 
     private <T, F> Publisher<Void> httpGetPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
-
         Mono<F> responseMono;
-
         try {
             Object result = method.invoke(handleObject, getMethodParams(method, req, resp, null));
             responseMono = (result instanceof Mono) ? (Mono<F>) result : (Mono<F>) Mono.just(result);
         } catch (Exception e) {
             responseMono = Mono.just((F) e.getMessage());
         }
-
-        return resp.addHeader(
-                HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON
-        )
-                .sendString(
-                        responseMono.map(
-                                s -> new GsonBuilder().create().toJson(s)
-                        )
-                );
+        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .sendString(responseMono.map(s -> gsonCreate.toJson(s)));
     }
 
     private <T, F> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
@@ -201,26 +199,30 @@ public class Dispatcher {
                                 .aggregate()
                                 .retain()
                                 .map(byteBuf -> {
-                                    Mono<F> responseMono;
-                                    try {
-                                        Object result = method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
-                                        responseMono = (result instanceof Mono) ? (Mono<F>) result : (Mono<F>) Mono.just(result);
-                                    } catch (Exception e) {
-                                        responseMono = Mono.just((F) e.getMessage());
-                                    }
-                                    return responseMono;
+//                                    Mono<F> responseMono;
 //                                    try {
-//                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
+//                                        Object result = method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
+//                                        responseMono = (result instanceof Mono) ? (Mono<F>) result : (Mono<F>) Mono.just(result);
 //                                    } catch (Exception e) {
-//                                        e.printStackTrace();
-//                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
-//                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
-//                                        ));
+//                                        if (e.getCause()!=null && e.getCause().getClass()==CommonException.class) {
+//                                            CommonException ce = (CommonException) e.getCause();
+//                                            responseMono = Mono.just((F) ce);
+//                                        }
+//                                        else {
+//                                            responseMono = Mono.just((F)e);
+//                                        }
 //                                    }
+//                                    return responseMono;
+                                    try {
+                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
+                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
+                                        ));
+                                    }
                                 })
-                                .map(s->{
-                                    return new GsonBuilder().create().toJson(s);
-                                })
+                                // .map(s->gsonCreate.toJson(s))
                 );
     }
 

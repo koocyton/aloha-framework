@@ -44,8 +44,8 @@ angular.module('ngLoginApp', ['ui.bootstrap', 'ngCookies'])
                         if (response.status===200) {
                             let loginResponse = response.data.data;
                             let expireDate = new Date();
-                            expireDate.setDate(expireDate.getDate() + loginResponse.expires);
-                            $cookies.put("se_id", loginResponse.token,{'expires': expireDate});
+                            expireDate.setDate(expireDate.getDate() + loginResponse.expire);
+                            $cookies.put("se_id", loginResponse.token,{'expire': expireDate});
                             window.top.location = "/admin/index.html";
                         }
                     },
