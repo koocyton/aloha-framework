@@ -164,7 +164,7 @@ public class Dispatcher {
         // );
     }
 
-    private <T> Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+    private <T, F> Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
 
         // Filter
         // String requestPath = method.getAnnotation(Path.class).value();
@@ -175,21 +175,29 @@ public class Dispatcher {
         //     }
         // }
 
-        Mono<Object> responseMono = Mono.just(new Object());
+        Mono<F> responseMono = null;
 
         try {
-            responseMono = (Mono<Object>) method.invoke(
-                    handleObject,
-                    getMethodParams(method, req, resp, null)
-            );
+            Object<F> result = method.invoke(handleObject, getMethodParams(method, req, resp, null));
+            if (result instanceof Mono) {
+                responseMono = (Mono<F>) method.invoke(handleObject, getMethodParams(method, req, resp, null));
+            }
+            else {
+                responseMono = Mono.just(result);
+            }
         }
         catch (Exception e) {
-            responseMono = Mono.just(e.getMessage());
+            responseMono = Mono.just((F)e.getMessage());
         }
 
-        resp
-                .addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString();
+        return resp.addHeader(
+                        HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON
+                )
+                .sendString(
+                        responseMono.map(
+                                s -> new GsonBuilder().create().toJson(s)
+                        )
+                );
 
         // Request
 //        if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {

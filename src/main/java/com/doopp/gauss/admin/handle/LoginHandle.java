@@ -7,6 +7,7 @@ import com.doopp.gauss.common.message.response.Authentication;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -33,7 +34,7 @@ public class LoginHandle {
 
     @GET
     @Path("/manager")
-    public CommonResponse<User> sessionManager() {
-        return new CommonResponse<>(userDao.getById(1L));
+    public Mono<CommonResponse<User>> sessionManager() {
+        return Mono.just(new CommonResponse<>(userDao.getById(1L)));
     }
 }
