@@ -23,13 +23,14 @@ import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.HttpServerRoutes;
+import reactor.netty.http.websocket.WebsocketInbound;
+import reactor.netty.http.websocket.WebsocketOutbound;
 
 import javax.ws.rs.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
@@ -66,43 +67,11 @@ public class Dispatcher {
                     // handle
                     Object handleObject = injector.getInstance(Class.forName(handleClassName));
                     Path pathAnnotation = handleObject.getClass().getAnnotation(Path.class);
-                    String rootPath = (pathAnnotation==null) ? "" : pathAnnotation.value();
+                    String rootPath = (pathAnnotation == null) ? "" : pathAnnotation.value();
                     // if websocket
                     if (handleObject instanceof WebSocketServerHandle) {
                         log.info("    WS " + rootPath + " → " + handleClassName);
-                        routes.ws(rootPath, (in, out) -> {
-                            return out.withConnection(c->{
-                                    String handleKey = in.headers().get("Sec-WebSocket-Key");
-                                    handles.put(handleKey, c.channel());
-                                    ((WebSocketServerHandle) handleObject).onConnect(c.channel());
-                                })
-                                .options(NettyPipeline.SendOptions::flushOnEach)
-                                .sendObject(in
-                                        .aggregateFrames()
-                                        .receiveFrames()
-                                        .map(frame -> {
-                                            String handleKey = in.headers().get("Sec-WebSocket-Key");
-                                            if (frame instanceof TextWebSocketFrame) {
-                                                return ((WebSocketServerHandle) handleObject).onTextMessage(handles.get(handleKey));
-                                            }
-                                            else if (frame instanceof BinaryWebSocketFrame) {
-                                                ((WebSocketServerHandle) handleObject).onBinaryMessage(handles.get(handleKey));
-                                            }
-                                            else if (frame instanceof PingWebSocketFrame) {
-                                                ((WebSocketServerHandle) handleObject).onPingMessage(handles.get(handleKey));
-                                            }
-                                            else if (frame instanceof PongWebSocketFrame) {
-                                                ((WebSocketServerHandle) handleObject).onPongMessage(handles.get(handleKey));
-                                            }
-                                            else if (frame instanceof CloseWebSocketFrame) {
-                                                ((WebSocketServerHandle) handleObject).close(handles.get(handleKey));
-                                                handles.remove(handleKey);
-                                            }
-                                            return "";
-                                        })
-                                        .map(TextWebSocketFrame::new)
-                                );
-                        });
+                        routes.ws(rootPath, (in, out) -> websocketPublisher(in, out, handleObject));
                         continue;
                     }
                     // methods for handle
@@ -115,22 +84,22 @@ public class Dispatcher {
                             // GET
                             if (method.isAnnotationPresent(GET.class)) {
                                 log.info("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.get(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
+                                routes.get(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // POST
                             else if (method.isAnnotationPresent(POST.class)) {
                                 log.info("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.post(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
+                                routes.post(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // DELETE
                             else if (method.isAnnotationPresent(DELETE.class)) {
                                 log.info("DELETE " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.delete(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
+                                routes.delete(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // UPDATE
                             else if (method.isAnnotationPresent(PUT.class)) {
                                 log.info("   PUT " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.put(requestPath, (req, resp) -> publish(req, resp, method, handleObject));
+                                routes.put(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                         }
                     }
@@ -142,7 +111,42 @@ public class Dispatcher {
         };
     }
 
-    private <T> Publisher<Void> publish(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+    private <T> Publisher<Void> websocketPublisher(WebsocketInbound in, WebsocketOutbound out, T handleObject) {
+
+        return out.withConnection(c -> {
+            String handleKey = in.headers().get("Sec-WebSocket-Key");
+            handles.put(handleKey, c.channel());
+            ((WebSocketServerHandle) handleObject).onConnect(c.channel());
+        })
+                .options(NettyPipeline.SendOptions::flushOnEach)
+                .sendObject(in
+                        .aggregateFrames()
+                        .receiveFrames()
+                        .map(frame -> {
+                            String handleKey = in.headers().get("Sec-WebSocket-Key");
+                            if (frame instanceof TextWebSocketFrame) {
+                                return ((WebSocketServerHandle) handleObject).onTextMessage(handles.get(handleKey));
+                            }
+                            else if (frame instanceof BinaryWebSocketFrame) {
+                                ((WebSocketServerHandle) handleObject).onBinaryMessage(handles.get(handleKey));
+                            }
+                            else if (frame instanceof PingWebSocketFrame) {
+                                ((WebSocketServerHandle) handleObject).onPingMessage(handles.get(handleKey));
+                            }
+                            else if (frame instanceof PongWebSocketFrame) {
+                                ((WebSocketServerHandle) handleObject).onPongMessage(handles.get(handleKey));
+                            }
+                            else if (frame instanceof CloseWebSocketFrame) {
+                                ((WebSocketServerHandle) handleObject).close(handles.get(handleKey));
+                                handles.remove(handleKey);
+                            }
+                            return "";
+                        })
+                        .map(TextWebSocketFrame::new)
+                );
+    }
+
+    private <T> Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
 
         // Filter
         // String requestPath = method.getAnnotation(Path.class).value();
@@ -157,7 +161,7 @@ public class Dispatcher {
         if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {
             try {
                 return resp.sendString(Mono.just(
-                    new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, null)))
+                        new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, null)))
                 ));
             } catch (Exception e) {
                 return resp.sendString(Mono.just(e.getMessage()));
@@ -165,19 +169,19 @@ public class Dispatcher {
         }
 
         return resp.sendString(
-            req.receive()
-                .aggregate()
-                .retain()
-                .map(byteBuf -> {
-                    try {
-                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return new GsonBuilder().create().toJson(new CommonResponse<>(
-                            new CommonException(CommonError.FAIL.code(), e.getMessage())
-                        ));
-                    }
-                })
+                req.receive()
+                        .aggregate()
+                        .retain()
+                        .map(byteBuf -> {
+                            try {
+                                return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                return new GsonBuilder().create().toJson(new CommonResponse<>(
+                                        new CommonException(CommonError.FAIL.code(), e.getMessage())
+                                ));
+                            }
+                        })
         );
     }
 
