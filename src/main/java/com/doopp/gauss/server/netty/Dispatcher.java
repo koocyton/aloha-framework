@@ -65,7 +65,7 @@ public class Dispatcher {
                     Path pathAnnotation = handleObject.getClass().getAnnotation(Path.class);
                     String rootPath = (pathAnnotation == null) ? "" : pathAnnotation.value();
                     // if websocket
-                    if (handleObject instanceof WebSocketServerHandle) {
+                    if (handleObject instanceof WebSocketServerHandle && pathAnnotation != null) {
                         log.info("    WS " + rootPath + " → " + handleClassName);
                         routes.ws(rootPath, (in, out) -> websocketPublisher(in, out, handleObject));
                         continue;
