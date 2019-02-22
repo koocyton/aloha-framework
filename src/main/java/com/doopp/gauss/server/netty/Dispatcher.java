@@ -1,8 +1,5 @@
 package com.doopp.gauss.server.netty;
 
-import com.doopp.gauss.common.defined.CommonError;
-import com.doopp.gauss.common.exception.CommonException;
-import com.doopp.gauss.common.message.CommonResponse;
 import com.doopp.gauss.server.filter.iFilter;
 import com.doopp.gauss.server.handle.StaticHandle;
 import com.doopp.gauss.server.handle.WebSocketServerHandle;
@@ -13,7 +10,6 @@ import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
 import io.netty.handler.codec.http.websocketx.*;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +22,6 @@ import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
 import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -185,15 +180,6 @@ public class Dispatcher {
 
     private <T, F> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
 
-        // Filter
-        // String requestPath = method.getAnnotation(Path.class).value();
-        // for(iFilter filter : filters.values()) {
-        //     if (requestPath.contains(req.path())) {
-        //         if (!filter.doFilter(req, resp)) {
-        //         }
-        //     }
-        // }
-
         return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .sendString(req.receive()
                                 .aggregate()
@@ -213,14 +199,14 @@ public class Dispatcher {
 //                                        }
 //                                    }
 //                                    return responseMono;
-                                    try {
-                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
-                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
-                                        ));
-                                    }
+//                                    try {
+//                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
+//                                    } catch (Exception e) {
+//                                        e.printStackTrace();
+//                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
+//                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
+//                                        ));
+//                                    }
                                 })
                                 // .map(s->gsonCreate.toJson(s))
                 );
