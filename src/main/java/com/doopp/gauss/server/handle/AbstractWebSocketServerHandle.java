@@ -1,9 +1,8 @@
 package com.doopp.gauss.server.handle;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.*;
 
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
 
@@ -13,32 +12,31 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
     }
 
     @Override
-    public void onMessage(Channel channel) {
-
+    public void onMessage(WebSocketFrame frame, Channel channel) {
     }
 
     @Override
-    public String onTextMessage(Channel channel) {
-        return null;
+    public void onTextMessage(TextWebSocketFrame frame, Channel channel) {
+        channel.writeAndFlush(new TextWebSocketFrame("message " + channel.id()));
     }
 
     @Override
-    public ByteBuf onBinaryMessage(Channel channel) {
-        return Unpooled.buffer(0);
+    public void onBinaryMessage(BinaryWebSocketFrame frame, Channel channel) {
+        channel.writeAndFlush(Unpooled.buffer(0));
     }
 
     @Override
-    public ByteBuf onPingMessage(Channel channel) {
-        return Unpooled.buffer(0);
+    public void onPingMessage(PingWebSocketFrame frame, Channel channel) {
+        channel.writeAndFlush(new PongWebSocketFrame());
     }
 
     @Override
-    public ByteBuf onPongMessage(Channel channel) {
-        return Unpooled.buffer(0);
+    public void onPongMessage(PongWebSocketFrame frame, Channel channel) {
+        channel.writeAndFlush(new PingWebSocketFrame());
     }
 
     @Override
-    public void close(Channel channel) {
+    public void close(CloseWebSocketFrame frame, Channel channel) {
         if (channel!=null) {
             try {
                 channel.close();
@@ -47,10 +45,5 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
                 e.printStackTrace();
             }
         }
-    }
-
-    @Override
-    public void onError(Channel channel) {
-        this.close(channel);
     }
 }
