@@ -18,6 +18,7 @@ import io.netty.handler.codec.http.websocketx.*;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
+import reactor.netty.ByteBufMono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.HttpServerRoutes;
@@ -169,50 +170,63 @@ public class Dispatcher {
         // );
     }
 
-    private <T, F> Publisher<Void> httpGetPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
-        Mono<F> responseMono;
+    private <T> Publisher<Void> httpGetPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+        Mono<CommonResponse<Object>> responseMono;
+        int status = HttpResponseStatus.OK.code();
         try {
-            Object result = method.invoke(handleObject, getMethodParams(method, req, resp, null));
-            responseMono = (result instanceof Mono) ? (Mono<F>) result : (Mono<F>) Mono.just(result);
+            responseMono = (Mono<CommonResponse<Object>>) method.invoke(handleObject, getMethodParams(method, req, resp, null));
         } catch (Exception e) {
-            responseMono = Mono.just((F) e.getMessage());
+            CommonResponse exceptionResponse = exceptionPublisher(e);
+            responseMono = Mono.just(exceptionResponse);
+            status = exceptionResponse.getErr_code();
         }
         return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString(responseMono.map(s -> gsonCreate.toJson(s)));
+            .status(status)
+            .sendString(responseMono.map(s -> gsonCreate.toJson(s)));
     }
 
     private <T> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
 
+        Mono<CommonResponse<Object>> responseMono = req
+            .receive()
+            .aggregate()
+            .retain()
+            .map(byteBuf -> {
+                try {
+                    a = (Mono<CommonResponse<Object>>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
+                } catch (Exception e) {
+                    b = exceptionPublisher(e);
+                }
+            });
+
+        log.info("{}", byteBufMono.block());
+        Mono<CommonResponse<Object>> responseMono;
+        try {
+            responseMono = (Mono<CommonResponse<Object>>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBufMono.block()));
+        } catch (Exception e) {
+            responseMono = exceptionPublisher(e);
+        }
+        int status = (responseMono.block().getErr_code()==0) ? HttpResponseStatus.OK.code() : responseMono.block().getErr_code();
         return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString(req.receive()
-                                .aggregate()
-                                .retain()
-                                .map(byteBuf -> {
-//                                    Mono<F> responseMono;
-//                                    try {
-//                                        Object result = method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
-//                                        responseMono = (result instanceof Mono) ? (Mono<F>) result : (Mono<F>) Mono.just(result);
-//                                    } catch (Exception e) {
-//                                        if (e.getCause()!=null && e.getCause().getClass()==CommonException.class) {
-//                                            CommonException ce = (CommonException) e.getCause();
-//                                            responseMono = Mono.just((F) ce);
-//                                        }
-//                                        else {
-//                                            responseMono = Mono.just((F)e);
-//                                        }
-//                                    }
-//                                    return responseMono;
-                                    try {
-                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
-                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
-                                        ));
-                                    }
-                                })
-                                // .map(s->gsonCreate.toJson(s))
-                );
+            .status(status)
+            .sendString(responseMono.map(s -> gsonCreate.toJson(s)));
+    }
+
+    private CommonResponse<Object> exceptionPublisher(Exception e) {
+        // default error info
+        int errorCode = CommonError.FAIL.code();
+        String errorMessage = e.getMessage();
+        // if is CommonException
+        if (e.getCause()!=null && e.getCause().getClass()==CommonException.class) {
+            CommonException ce = (CommonException) e.getCause();
+            errorCode = ce.getCode();
+            errorMessage = ce.getMessage();
+        }
+        // return;
+        CommonResponse<Object> responseObject = new CommonResponse<>(null);
+        responseObject.setErr_code(errorCode);
+        responseObject.setErr_msg(errorMessage);
+        return responseObject;
     }
 
     private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, ByteBuf content) {
