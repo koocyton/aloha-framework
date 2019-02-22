@@ -1,5 +1,8 @@
 package com.doopp.gauss.server.netty;
 
+import com.doopp.gauss.common.defined.CommonError;
+import com.doopp.gauss.common.exception.CommonException;
+import com.doopp.gauss.common.message.CommonResponse;
 import com.doopp.gauss.server.filter.iFilter;
 import com.doopp.gauss.server.handle.StaticHandle;
 import com.doopp.gauss.server.handle.WebSocketServerHandle;
@@ -178,7 +181,7 @@ public class Dispatcher {
                 .sendString(responseMono.map(s -> gsonCreate.toJson(s)));
     }
 
-    private <T, F> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+    private <T> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
 
         return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
                 .sendString(req.receive()
@@ -199,14 +202,14 @@ public class Dispatcher {
 //                                        }
 //                                    }
 //                                    return responseMono;
-//                                    try {
-//                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
-//                                    } catch (Exception e) {
-//                                        e.printStackTrace();
-//                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
-//                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
-//                                        ));
-//                                    }
+                                    try {
+                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
+                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
+                                        ));
+                                    }
                                 })
                                 // .map(s->gsonCreate.toJson(s))
                 );
