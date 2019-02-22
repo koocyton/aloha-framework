@@ -81,22 +81,22 @@ public class Dispatcher {
                             // GET
                             if (method.isAnnotationPresent(GET.class)) {
                                 log.info("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.get(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
+                                routes.get(requestPath, (req, resp) -> httpGetPublisher(req, resp, method, handleObject));
                             }
                             // POST
                             else if (method.isAnnotationPresent(POST.class)) {
                                 log.info("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.post(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
+                                routes.post(requestPath, (req, resp) -> httpPostPublisher(req, resp, method, handleObject));
                             }
                             // DELETE
                             else if (method.isAnnotationPresent(DELETE.class)) {
                                 log.info("DELETE " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.delete(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
+                                routes.delete(requestPath, (req, resp) -> httpGetPublisher(req, resp, method, handleObject));
                             }
                             // UPDATE
                             else if (method.isAnnotationPresent(PUT.class)) {
                                 log.info("   PUT " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.put(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
+                                routes.put(requestPath, (req, resp) -> httpPostPublisher(req, resp, method, handleObject));
                             }
                         }
                     }
@@ -117,23 +117,23 @@ public class Dispatcher {
             webSocketServerHandle.onConnect(c.channel());
             // get message
             in.aggregateFrames()
-                .receiveFrames()
-                .map(frame -> {
-                    if (frame instanceof TextWebSocketFrame) {
-                        webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, c.channel());
-                    } else if (frame instanceof BinaryWebSocketFrame) {
-                        webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
-                    } else if (frame instanceof PingWebSocketFrame) {
-                        webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, c.channel());
-                    } else if (frame instanceof PongWebSocketFrame) {
-                        webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, c.channel());
-                    } else if (frame instanceof CloseWebSocketFrame) {
-                        webSocketServerHandle.close((CloseWebSocketFrame) frame, c.channel());
-                    }
-                    return "";
-                })
-                // .map(TextWebSocketFrame::new)
-                .blockLast();
+                    .receiveFrames()
+                    .map(frame -> {
+                        if (frame instanceof TextWebSocketFrame) {
+                            webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, c.channel());
+                        } else if (frame instanceof BinaryWebSocketFrame) {
+                            webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
+                        } else if (frame instanceof PingWebSocketFrame) {
+                            webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, c.channel());
+                        } else if (frame instanceof PongWebSocketFrame) {
+                            webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, c.channel());
+                        } else if (frame instanceof CloseWebSocketFrame) {
+                            webSocketServerHandle.close((CloseWebSocketFrame) frame, c.channel());
+                        }
+                        return null;
+                    })
+                    // .map(TextWebSocketFrame::new)
+                    .blockLast();
         });
         // .options(NettyPipeline.SendOptions::flushOnEach)
         // .sendObject(in
@@ -164,7 +164,28 @@ public class Dispatcher {
         // );
     }
 
-    private <T, F> Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+    private <T, F> Publisher<Void> httpGetPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+
+        Mono<F> responseMono;
+
+        try {
+            Object result = method.invoke(handleObject, getMethodParams(method, req, resp, null));
+            responseMono = (result instanceof Mono) ? (Mono<F>) result : (Mono<F>) Mono.just(result);
+        } catch (Exception e) {
+            responseMono = Mono.just((F) e.getMessage());
+        }
+
+        return resp.addHeader(
+                HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON
+        )
+                .sendString(
+                        responseMono.map(
+                                s -> new GsonBuilder().create().toJson(s)
+                        )
+                );
+    }
+
+    private <T, F> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
 
         // Filter
         // String requestPath = method.getAnnotation(Path.class).value();
@@ -175,56 +196,32 @@ public class Dispatcher {
         //     }
         // }
 
-        Mono<F> responseMono = null;
-
-        try {
-            Object<F> result = method.invoke(handleObject, getMethodParams(method, req, resp, null));
-            if (result instanceof Mono) {
-                responseMono = (Mono<F>) method.invoke(handleObject, getMethodParams(method, req, resp, null));
-            }
-            else {
-                responseMono = Mono.just(result);
-            }
-        }
-        catch (Exception e) {
-            responseMono = Mono.just((F)e.getMessage());
-        }
-
-        return resp.addHeader(
-                        HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON
-                )
-                .sendString(
-                        responseMono.map(
-                                s -> new GsonBuilder().create().toJson(s)
-                        )
+        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .sendString(req.receive()
+                                .aggregate()
+                                .retain()
+                                .map(byteBuf -> {
+                                    Mono<F> responseMono;
+                                    try {
+                                        Object result = method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
+                                        responseMono = (result instanceof Mono) ? (Mono<F>) result : (Mono<F>) Mono.just(result);
+                                    } catch (Exception e) {
+                                        responseMono = Mono.just((F) e.getMessage());
+                                    }
+                                    return responseMono;
+//                                    try {
+//                                        return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
+//                                    } catch (Exception e) {
+//                                        e.printStackTrace();
+//                                        return new GsonBuilder().create().toJson(new CommonResponse<>(
+//                                                new CommonException(CommonError.FAIL.code(), e.getMessage())
+//                                        ));
+//                                    }
+                                })
+                                .map(s->{
+                                    return new GsonBuilder().create().toJson(s);
+                                })
                 );
-
-        // Request
-//        if (req.method() == HttpMethod.GET || req.method() == HttpMethod.DELETE) {
-//            try {
-//                return resp.sendString(Mono.just(
-//                        new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, null)))
-//                ));
-//            } catch (Exception e) {
-//                return resp.sendString(Mono.just(e.getMessage()));
-//            }
-//        }
-//
-//        return resp.sendString(
-//                req.receive()
-//                        .aggregate()
-//                        .retain()
-//                        .map(byteBuf -> {
-//                            try {
-//                                return new GsonBuilder().create().toJson(method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf)));
-//                            } catch (Exception e) {
-//                                e.printStackTrace();
-//                                return new GsonBuilder().create().toJson(new CommonResponse<>(
-//                                        new CommonException(CommonError.FAIL.code(), e.getMessage())
-//                                ));
-//                            }
-//                        })
-//        );
     }
 
     private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, ByteBuf content) {

@@ -24,12 +24,12 @@ public class LoginHandle {
 
     @GET
     @Path("/authentication")
-    public CommonResponse<Authentication> authentication() {
+    public Mono<CommonResponse<Authentication>> authentication() {
         Authentication authentication = new Authentication(
             applicationProperties.l("admin.client.id"),
             applicationProperties.s("admin.client.secret")
         );
-        return new CommonResponse<>(authentication);
+        return Mono.just(new CommonResponse<>(authentication));
     }
 
     @GET
