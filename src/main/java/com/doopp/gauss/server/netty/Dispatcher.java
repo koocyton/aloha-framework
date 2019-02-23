@@ -127,22 +127,23 @@ public class Dispatcher {
             webSocketServerHandle.onConnect(c.channel());
             // get message
             in.aggregateFrames()
-                 .receiveFrames()
-                 .map(frame -> {
-                     if (frame instanceof TextWebSocketFrame) {
-                         webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, c.channel());
-                     } else if (frame instanceof BinaryWebSocketFrame) {
-                         webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
-                     } else if (frame instanceof PingWebSocketFrame) {
-                         webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, c.channel());
-                     } else if (frame instanceof PongWebSocketFrame) {
-                         webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, c.channel());
-                     } else if (frame instanceof CloseWebSocketFrame) {
-                         webSocketServerHandle.close((CloseWebSocketFrame) frame, c.channel());
-                     }
-                     return null;
+                .receiveFrames()
+                .map(frame -> {
+                    if (frame instanceof TextWebSocketFrame) {
+                        webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, c.channel());
+                    } else if (frame instanceof BinaryWebSocketFrame) {
+                        webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
+                    } else if (frame instanceof PingWebSocketFrame) {
+                        webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, c.channel());
+                    } else if (frame instanceof PongWebSocketFrame) {
+                        webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, c.channel());
+                    } else if (frame instanceof CloseWebSocketFrame) {
+                        webSocketServerHandle.close((CloseWebSocketFrame) frame, c.channel());
+                    }
+                    // 不可返回 null
+                    return "";
                  })
-                 // .map(TextWebSocketFrame::new)
+                 .map(TextWebSocketFrame::new)
                  .blockLast();
         });
         // .options(NettyPipeline.SendOptions::flushOnEach)
