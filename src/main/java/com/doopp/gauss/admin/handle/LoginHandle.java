@@ -24,17 +24,17 @@ public class LoginHandle {
 
     @GET
     @Path("/authentication")
-    public Mono<CommonResponse<Authentication>> authentication() {
+    public CommonResponse<Authentication> authentication() {
         Authentication authentication = new Authentication(
             applicationProperties.l("admin.client.id"),
             applicationProperties.s("admin.client.secret")
         );
-        return Mono.just(new CommonResponse<>(authentication));
+        return CommonResponse.just(authentication);
     }
 
     @GET
     @Path("/manager")
-    public Mono<CommonResponse<User>> sessionManager() {
-        return Mono.just(new CommonResponse<>(userDao.getById(1L)));
+    public CommonResponse<User> sessionManager() {
+        return CommonResponse.just(userDao.getById(1L));
     }
 }

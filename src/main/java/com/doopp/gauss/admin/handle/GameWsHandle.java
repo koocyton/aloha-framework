@@ -14,7 +14,6 @@ import javax.ws.rs.Path;
 @Singleton
 public class GameWsHandle extends AbstractWebSocketServerHandle {
 
-
     @Override
     public void onTextMessage(TextWebSocketFrame frame, Channel channel) {
         channel.writeAndFlush(new TextWebSocketFrame("onTextMessage " + channel.id() + " : get " + frame.text()));

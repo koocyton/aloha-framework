@@ -17,7 +17,7 @@ public class ManageHandle {
 
     @POST
     @Path("/post-test")
-    public Mono<CommonResponse<User>> sessionManager(@FormParam("id") Long id) {
-        return Mono.just(new CommonResponse<>(userDao.getById(id)));
+    public CommonResponse<User> sessionManager(@FormParam("id") Long id) {
+        return CommonResponse.just(userDao.getById(id));
     }
 }

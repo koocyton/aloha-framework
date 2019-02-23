@@ -14,4 +14,8 @@ public class CommonResponse<T> {
     public CommonResponse(T data) {
         this.data = data;
     }
+
+    public static <T> CommonResponse<T> just(T data) {
+        return new CommonResponse<>(data);
+    }
 }

@@ -12,13 +12,14 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.multipart.*;
 import io.netty.handler.codec.http.websocketx.*;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
-import reactor.netty.ByteBufMono;
+import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.HttpServerRoutes;
@@ -43,6 +44,8 @@ public class Dispatcher {
     private final Map<String, iFilter> filters = new HashMap<>();
 
     private final Set<String> handlePackages = new HashSet<>();
+
+    private final Map<String, Channel> wsChannels = new HashMap<>();
 
     private final Gson gsonCreate = new GsonBuilder()
 			.serializeNulls()
@@ -117,38 +120,39 @@ public class Dispatcher {
     private <T> Publisher<Void> websocketPublisher(WebsocketInbound in, WebsocketOutbound out, T handleObject) {
         // cast websocket handle
         WebSocketServerHandle webSocketServerHandle = (WebSocketServerHandle) handleObject;
-
+        // with connect
         return out.withConnection(c -> {
             // on connect
+            // wsChannels.put(in.headers().get("Sec-WebSocket-Key"), c.channel());
             webSocketServerHandle.onConnect(c.channel());
             // get message
             in.aggregateFrames()
-                    .receiveFrames()
-                    .map(frame -> {
-                        if (frame instanceof TextWebSocketFrame) {
-                            webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, c.channel());
-                        } else if (frame instanceof BinaryWebSocketFrame) {
-                            webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
-                        } else if (frame instanceof PingWebSocketFrame) {
-                            webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, c.channel());
-                        } else if (frame instanceof PongWebSocketFrame) {
-                            webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, c.channel());
-                        } else if (frame instanceof CloseWebSocketFrame) {
-                            webSocketServerHandle.close((CloseWebSocketFrame) frame, c.channel());
-                        }
-                        return null;
-                    })
-                    // .map(TextWebSocketFrame::new)
-                    .blockLast();
+                 .receiveFrames()
+                 .map(frame -> {
+                     if (frame instanceof TextWebSocketFrame) {
+                         webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, c.channel());
+                     } else if (frame instanceof BinaryWebSocketFrame) {
+                         webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
+                     } else if (frame instanceof PingWebSocketFrame) {
+                         webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, c.channel());
+                     } else if (frame instanceof PongWebSocketFrame) {
+                         webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, c.channel());
+                     } else if (frame instanceof CloseWebSocketFrame) {
+                         webSocketServerHandle.close((CloseWebSocketFrame) frame, c.channel());
+                     }
+                     return null;
+                 })
+                 // .map(TextWebSocketFrame::new)
+                 .blockLast();
         });
         // .options(NettyPipeline.SendOptions::flushOnEach)
         // .sendObject(in
         //         .aggregateFrames()
         //         .receiveFrames()
         //         .map(frame -> {
-        //             String handleKey = in.headers().get("Sec-WebSocket-Key");
+        //             String wsKey = in.headers().get("Sec-WebSocket-Key");
         //             if (frame instanceof TextWebSocketFrame) {
-        //                 return webSocketServerHandle.onTextMessage(handles.get(handleKey));
+        //                 webSocketServerHandle.onTextMessage((TextWebSocketFrame)frame, wsChannels.get(wsKey));
         //             }
         //             else if (frame instanceof BinaryWebSocketFrame) {
         //                 webSocketServerHandle.onBinaryMessage(handles.get(handleKey));
@@ -166,50 +170,43 @@ public class Dispatcher {
         //             return "";
         //         })
         //         .map(TextWebSocketFrame::new)
-        //         .blockLast()
         // );
     }
 
     private <T> Publisher<Void> httpGetPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
-        Mono<CommonResponse<Object>> responseMono;
-        int status = HttpResponseStatus.OK.code();
-        try {
-            responseMono = (Mono<CommonResponse<Object>>) method.invoke(handleObject, getMethodParams(method, req, resp, null));
-        } catch (Exception e) {
-            CommonResponse exceptionResponse = exceptionPublisher(e);
-            responseMono = Mono.just(exceptionResponse);
-            status = exceptionResponse.getErr_code();
-        }
-        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .status(status)
-            .sendString(responseMono.map(s -> gsonCreate.toJson(s)));
+        return this.httpPublisher(req, resp, method, handleObject, null);
     }
 
     private <T> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+            .status(HttpResponseStatus.OK)
+            .sendString(req
+                .receive()
+                .map(byteBuf -> {
+                    CommonResponse<Object> response;
+                    try {
+                        response = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
+                    } catch (Exception e) {
+                        response = exceptionPublisher(e);
+                    }
+                    return response;
+                })
+                .map(gsonCreate::toJson)
+            );
+    }
 
-        Mono<CommonResponse<Object>> responseMono = req
-            .receive()
-            .aggregate()
-            .retain()
-            .map(byteBuf -> {
-                try {
-                    a = (Mono<CommonResponse<Object>>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
-                } catch (Exception e) {
-                    b = exceptionPublisher(e);
-                }
-            });
-
-        log.info("{}", byteBufMono.block());
-        Mono<CommonResponse<Object>> responseMono;
+    private <T> Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject, ByteBuf content) {
+        CommonResponse<Object> response;
+        int status = HttpResponseStatus.OK.code();
         try {
-            responseMono = (Mono<CommonResponse<Object>>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBufMono.block()));
+            response = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, content));
         } catch (Exception e) {
-            responseMono = exceptionPublisher(e);
+            response = exceptionPublisher(e);
+            status = response.getErr_code();
         }
-        int status = (responseMono.block().getErr_code()==0) ? HttpResponseStatus.OK.code() : responseMono.block().getErr_code();
         return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
             .status(status)
-            .sendString(responseMono.map(s -> gsonCreate.toJson(s)));
+            .sendString(Mono.just(response).map(gsonCreate::toJson));
     }
 
     private CommonResponse<Object> exceptionPublisher(Exception e) {

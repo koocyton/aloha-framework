@@ -11,7 +11,6 @@ import com.doopp.gauss.common.message.request.RegisterRequest;
 import com.doopp.gauss.common.message.response.SessionToken;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
 
 import javax.ws.rs.*;
 
@@ -26,27 +25,27 @@ public class OAuthHandle {
 
     @POST
     @Path("/api/login")
-    public Mono<CommonResponse<SessionToken>> login(@BeanParam OAuthRequest<LoginRequest> commonRequest) throws CommonException {
+    public CommonResponse<SessionToken> login(@BeanParam OAuthRequest<LoginRequest> commonRequest) throws CommonException {
         LoginRequest loginRequest = commonRequest.getData();
         oauthService.checkLoginRequest(commonRequest);
         User user = oauthService.userLogin(loginRequest.getAccount(), loginRequest.getPassword());
         com.doopp.gauss.common.message.response.SessionToken sessionToken = new com.doopp.gauss.common.message.response.SessionToken(oauthService.createSessionToken(user));
-        return Mono.just(new CommonResponse<>(sessionToken));
+        return CommonResponse.just(sessionToken);
     }
 
     @POST
     @Path("/api/register")
-    public Mono<CommonResponse<SessionToken>> register(@BeanParam OAuthRequest<RegisterRequest> commonRequest) throws CommonException {
+    public CommonResponse<SessionToken> register(@BeanParam OAuthRequest<RegisterRequest> commonRequest) throws CommonException {
         RegisterRequest registerRequest = commonRequest.getData();
         oauthService.checkRegisterRequest(commonRequest);
         User user = oauthService.userRegister(registerRequest.getAccount(), registerRequest.getPassword());
         com.doopp.gauss.common.message.response.SessionToken sessionToken = new SessionToken(oauthService.createSessionToken(user));
-        return Mono.just(new CommonResponse<>(sessionToken));
+        return CommonResponse.just(sessionToken);
     }
 
     @GET
     @Path("/api/user/{id}")
-    public Mono<CommonResponse<User>> user(@PathParam("id") Long id) {
-        return Mono.just(new CommonResponse<>(userDao.getById(id)));
+    public CommonResponse<User> user(@PathParam("id") Long id) {
+        return CommonResponse.just(userDao.getById(id));
     }
 }
