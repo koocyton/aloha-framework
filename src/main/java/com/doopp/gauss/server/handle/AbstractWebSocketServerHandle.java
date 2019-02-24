@@ -35,8 +35,11 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
         channel.writeAndFlush(new PingWebSocketFrame());
     }
 
-    @Override
     public void close(CloseWebSocketFrame frame, Channel channel) {
+        this.close(channel);
+    }
+
+    public void close(Channel channel) {
         if (channel!=null) {
             try {
                 channel.close();

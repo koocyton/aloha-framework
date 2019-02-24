@@ -18,4 +18,6 @@ public interface WebSocketServerHandle<T> {
     void onPongMessage(PongWebSocketFrame frame, Channel channel);
 
     void close(CloseWebSocketFrame frame, Channel channel);
+
+    void close(Channel channel);
 }

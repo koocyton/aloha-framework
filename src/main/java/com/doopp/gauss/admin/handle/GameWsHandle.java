@@ -20,7 +20,7 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
     }
 
     @Override
-    public void close(CloseWebSocketFrame frame, Channel channel) {
-        super.close(frame, channel);
+    public void close(Channel channel) {
+        super.close(channel);
     }
 }
