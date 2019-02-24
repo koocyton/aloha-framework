@@ -46,9 +46,9 @@ public class KTApplication {
         dispatcher.addFilter(  "/api", new ApiFilter()  );
         dispatcher.addFilter("/admin", new AdminFilter());
 
-        for(int ii=0; ii<10; ii++) {
-            createHttpClient(ii);
-        }
+//        for(int ii=0; ii<10; ii++) {
+//            createHttpClient(ii);
+//        }
 
         DisposableServer disposableServer = HttpServer.create()
                 .route(dispatcher.setHandleMethodRoute())
