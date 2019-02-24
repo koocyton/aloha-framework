@@ -77,7 +77,7 @@ public class Dispatcher {
                     // if websocket
                     if (handleObject instanceof WebSocketServerHandle && pathAnnotation != null) {
                         log.info("    WS " + rootPath + " → " + handleClassName);
-                        routes.ws(rootPath, (in, out) -> websocketPublisher(in, out, handleObject));
+                        routes.ws(rootPath, (in, out) -> websocketPublisher(in, out, (WebSocketServerHandle) handleObject));
                         continue;
                     }
                     // methods for handle
@@ -117,31 +117,29 @@ public class Dispatcher {
         };
     }
 
-    private <T> Publisher<Void> websocketPublisher(WebsocketInbound in, WebsocketOutbound out, T handleObject) {
-        // cast websocket handle
-        WebSocketServerHandle webSocketServerHandle = (WebSocketServerHandle) handleObject;
+    private Publisher<Void> websocketPublisher(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject) {
         // with connect
         return out.withConnection(c -> {
             // on connect
             wsChannels.put(in.headers().get("Sec-WebSocket-Key"), c.channel());
-            webSocketServerHandle.onConnect(c.channel());
+            handleObject.onConnect(c.channel());
             // get message
-            //  in.aggregateFrames()
-            //      .receiveFrames()
-            //      .doOnNext(frame -> {
-            //          if (frame instanceof TextWebSocketFrame) {
-            //              webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, c.channel());
-            //          } else if (frame instanceof BinaryWebSocketFrame) {
-            //              webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
-            //          } else if (frame instanceof PingWebSocketFrame) {
-            //              webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, c.channel());
-            //          } else if (frame instanceof PongWebSocketFrame) {
-            //              webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, c.channel());
-            //          } else if (frame instanceof CloseWebSocketFrame) {
-            //              webSocketServerHandle.close((CloseWebSocketFrame) frame, c.channel());
-            //          }
-            //       })
-            //       .blockLast();
+//              in.aggregateFrames()
+//                  .receiveFrames()
+//                  .doOnNext(frame -> {
+//                      if (frame instanceof TextWebSocketFrame) {
+//                          handleObject.onTextMessage((TextWebSocketFrame) frame, c.channel());
+//                      } else if (frame instanceof BinaryWebSocketFrame) {
+//                          handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
+//                      } else if (frame instanceof PingWebSocketFrame) {
+//                          handleObject.onPingMessage((PingWebSocketFrame) frame, c.channel());
+//                      } else if (frame instanceof PongWebSocketFrame) {
+//                          handleObject.onPongMessage((PongWebSocketFrame) frame, c.channel());
+//                      } else if (frame instanceof CloseWebSocketFrame) {
+//                          handleObject.close((CloseWebSocketFrame) frame, c.channel());
+//                      }
+//                   })
+//                   .blockLast();
         })
          .options(NettyPipeline.SendOptions::flushOnEach)
          .then(in.aggregateFrames()
@@ -150,20 +148,20 @@ public class Dispatcher {
                  WebSocketFrame frame = webSocketFrameSignal.get();
                  String wsKey = in.headers().get("Sec-WebSocket-Key");
                  if (frame instanceof TextWebSocketFrame) {
-                     webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, wsChannels.get(wsKey));
+                     handleObject.onTextMessage((TextWebSocketFrame) frame, wsChannels.get(wsKey));
                  }
                  else if (frame instanceof BinaryWebSocketFrame) {
-                     webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame,  wsChannels.get(wsKey));
+                     handleObject.onBinaryMessage((BinaryWebSocketFrame) frame,  wsChannels.get(wsKey));
                  }
                  else if (frame instanceof PingWebSocketFrame) {
-                     webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, wsChannels.get(wsKey));
+                     handleObject.onPingMessage((PingWebSocketFrame) frame, wsChannels.get(wsKey));
                  }
                  else if (frame instanceof PongWebSocketFrame) {
-                     webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, wsChannels.get(wsKey));
+                     handleObject.onPongMessage((PongWebSocketFrame) frame, wsChannels.get(wsKey));
                  }
                  else if (frame instanceof CloseWebSocketFrame) {
                      log.info("1 channel {} close", wsChannels.get(wsKey).id());
-                     webSocketServerHandle.close((CloseWebSocketFrame) frame, wsChannels.get(wsKey));
+                     handleObject.close((CloseWebSocketFrame) frame, wsChannels.get(wsKey));
                      wsChannels.remove(wsKey);
                  }
              })
