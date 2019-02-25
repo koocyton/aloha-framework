@@ -68,3 +68,29 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
 }
 
 ```
+
+websocket 解析方式有几个，下面这个可能也是可行的。而且结构更清晰，只是后面哪个 blockLast 感觉好怪
+实际测试，并没有阻塞，线程也相对稳定
+```java
+(in, out) -> out.withConnection(c -> {
+            // on connect
+            handleObject.onConnect(c.channel());
+            // get message
+              in.aggregateFrames()
+                  .receiveFrames()
+                  .doOnNext(frame -> {
+                      if (frame instanceof TextWebSocketFrame) {
+                          handleObject.onTextMessage((TextWebSocketFrame) frame, c.channel());
+                      } else if (frame instanceof BinaryWebSocketFrame) {
+                          handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
+                      } else if (frame instanceof PingWebSocketFrame) {
+                          handleObject.onPingMessage((PingWebSocketFrame) frame, c.channel());
+                      } else if (frame instanceof PongWebSocketFrame) {
+                          handleObject.onPongMessage((PongWebSocketFrame) frame, c.channel());
+                      } else if (frame instanceof CloseWebSocketFrame) {
+                          handleObject.close((CloseWebSocketFrame) frame, c.channel());
+                      }
+                   })
+                   .blockLast();
+        }).then();
+```
