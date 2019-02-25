@@ -1,0 +1,90 @@
+group 'com.doopp.gauss'
+version '1.0'
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+sourceCompatibility = 1.8
+
+ext {
+}
+
+repositories {
+    mavenLocal()
+    jcenter()
+    mavenCentral()
+}
+
+dependencies {
+
+    // AOP
+    compile ('com.google.inject:guice:4.2.2') {
+        exclude group: 'com.google.guava'
+    }
+    compile 'com.google.guava:guava:25.1-jre'
+
+    // compile 'org.reactivestreams:reactive-streams:1.0.2'
+    compile 'io.projectreactor:reactor-core:3.2.5.RELEASE'
+    compile ('io.projectreactor.netty:reactor-netty:0.8.4.RELEASE') {
+        exclude group: 'io.netty'
+    }
+    compile 'io.netty:netty-all:4.1.32.Final'
+    compile 'javax.ws.rs:javax.ws.rs-api:2.1.1'
+
+    // JSON
+    compile 'com.google.code.gson:gson:2.8.5'
+
+    // database
+    compile 'mysql:mysql-connector-java:6.0.6'
+    compile 'com.zaxxer:HikariCP:3.3.0'
+    compile 'org.mybatis:mybatis:3.5.0'
+    compile 'org.mybatis:mybatis-guice:3.10'
+    // compile 'com.github.pagehelper:pagehelper:5.1.8'
+
+    // Redis
+    compile 'redis.clients:jedis:3.0.1'
+
+    // async http client
+    // compile 'com.ning:async-http-client:1.9.38'
+
+    // template
+    // compile 'org.freemarker:freemarker:2.3.28'
+
+    // Util
+    compile 'org.mapstruct:mapstruct-jdk8:1.2.0.Final'
+    compileOnly 'org.mapstruct:mapstruct-processor:1.2.0.Final'
+    compileOnly 'org.projectlombok:lombok:1.18.6'
+    annotationProcessor 'org.projectlombok:lombok:1.18.6'
+
+    // Logging
+    compile 'org.slf4j:slf4j-api:1.7.25'
+    compile 'org.slf4j:slf4j-log4j12:1.7.25'
+
+    // compile 'junit:junit:4.12'
+    // compile 'io.projectreactor:reactor-test:3.2.5.RELEASE'
+}
+
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+jar {
+    manifest {
+        attributes(
+                "Manifest-Version": 1.0,
+                "Main-Class": "com.doopp.gauss.server.KTApplication",
+                "Class-Path": "./"
+        )
+    }
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+task clear(type:Delete){
+    delete 'build','target'
+}
+task release(type: Copy, dependsOn: [clear, jar]) {
+}
