@@ -1,25 +1,15 @@
 package com.doopp.gauss.server.handle;
 
-import com.doopp.gauss.common.exception.CommonException;
-import com.doopp.gauss.server.message.CommonResponse;
-import com.google.gson.Gson;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-import reactor.netty.ByteBufMono;
+import reactor.netty.ByteBufFlux;
 import reactor.netty.NettyOutbound;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -27,117 +17,21 @@ import java.util.HashMap;
 @Slf4j
 public class StaticHandle {
 
-//    private final HashMap<String, iFilter> filters = new HashMap<>();
-//
-//    private Injector injector;
-//
-//    public void setInjector(Injector injector) {
-//        this.injector = injector;
-//    }
-//
-//    public void addFilter(String path, Class<? extends iFilter> filterClass) {
-//        this.filters.put(path, injector.getInstance(filterClass));
-//    }
-//
-//    private boolean doFilter(HttpServerRequest request, HttpServerResponse response) {
-//        String uri = URI.create(request.uri()).getPath();
-//        for(String key : this.filters.keySet()) {
-//            int keyLength = key.length();
-//            if (uri.substring(0, keyLength).equals(key)) {
-//                 return this.filters.get(key).doFilter(request, response);
-//            }
-//        }
-//        return true;
-//    }
-//
-//    public <T> NettyOutbound sendWs(WebsocketInbound in, WebsocketOutbound out, Function<Injector, T> function) {
-//        return out.options(NettyPipeline.SendOptions::flushOnEach)
-//                .sendString(in
-//                        .receiveFrames()
-//                        .map(frame -> {
-//                            if (frame instanceof TextWebSocketFrame) {
-//                                return new GsonBuilder().create().toJson(function.apply(injector));
-//                            }
-//                            return "\n";
-//                        })
-//                );
-//    }
-//
-//    public <T> NettyOutbound sendJson(HttpServerRequest req, HttpServerResponse resp, Function<Injector, T> function) {
-//        if (!this.doFilter(req, resp)) {
-//            return this.sendJsonException(resp, new CommonException(CommonError.WRONG_SESSION));
-//        }
-//        String json = new GsonBuilder().create().toJson(function.apply(injector));
-//        return resp
-//                .status(HttpResponseStatus.OK)
-//                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-//                .sendString(Mono.just(json));
-//    }
-
     public NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
-//        if (!this.doFilter(req, resp)) {
-//            return this.sendNotFoundPage(resp, new CommonException(CommonError.WRONG_SESSION));
-//        }
         String requestUri = (req.uri().equals("/") || req.uri().equals("")) ? "/index.html" : req.uri();
         String requirePath = "/public" + requestUri;
-
-        URL fileUrl = this.getClass().getResource(requirePath);
-        if (fileUrl == null) {
-            return resp.status(HttpResponseStatus.NOT_FOUND);
-        }
-
-        if (!fileUrl.toString().contains(".jar!")) {
-            try {
-                Path filePath = Paths.get(fileUrl.toURI());
-                return resp
-                        .header(HttpHeaderNames.CONTENT_TYPE, contentType(requirePath.substring(requirePath.lastIndexOf(".") + 1)))
-                        .sendFile(filePath);
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        try (InputStream fileIs = this.getClass().getResourceAsStream(requirePath)) {
-            if (fileIs == null) {
-                return resp.status(HttpResponseStatus.NOT_FOUND);
-            }
-            ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            byte[] bs = new byte[1024];
-            int len;
-            while ((len = fileIs.read(bs)) != -1) {
-                bout.write(bs, 0, len);
-            }
-            ByteBuf buf = Unpooled.wrappedBuffer(bout.toByteArray()).retain();
+        try {
+            Path path = Paths.get(getClass().getResource("/public" + requestUri).toURI());
             return resp
                     .header(HttpHeaderNames.CONTENT_TYPE, contentType(requirePath.substring(requirePath.lastIndexOf(".") + 1)))
-                    .send(ByteBufMono.just(buf));
-        } catch (IOException ue) {
-            throw new RuntimeException(ue);
+                    .sendObject(ByteBufFlux.fromPath(path));
         }
-    }
-
-    public NettyOutbound sendJsonException(HttpServerResponse resp, CommonException commonException) {
-        CommonResponse<Object> commonResponse = new CommonResponse<>(null);
-        commonResponse.setErr_code(commonException.getCode());
-        commonResponse.setErr_msg(commonException.getMessage());
-        String monoJson = new Gson().toJson(commonResponse);
-        return resp
-                .status(commonException.getCode())
-                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                .sendString(Mono.just(monoJson));
-    }
-
-    public NettyOutbound sendNotFoundPage(HttpServerResponse resp, CommonException commonException) {
-        return resp
-            .status(HttpResponseStatus.NOT_FOUND)
-            .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN)
-            .sendString(Mono.just(commonException.getMessage()));
-    }
-
-    public NettyOutbound sendRedirect(HttpServerResponse resp, String redirect) {
-        return resp
-            .status(HttpResponseStatus.PERMANENT_REDIRECT)
-            .sendString(Mono.just(""));
+        catch(Exception e) {
+            return resp
+                    .status(HttpResponseStatus.NOT_FOUND)
+                    .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.TEXT_PLAIN)
+                    .sendString(Mono.just(""));
+        }
     }
 
     private String contentType(String fileExt) {
