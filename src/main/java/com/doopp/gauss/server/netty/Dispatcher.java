@@ -14,7 +14,10 @@ import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.multipart.*;
+import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
+import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
+import io.netty.handler.codec.http.multipart.InterfaceHttpData;
+import io.netty.handler.codec.http.multipart.MemoryAttribute;
 import io.netty.handler.codec.http.websocketx.*;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -222,39 +225,39 @@ public class Dispatcher {
     }
 
     private <T> Publisher<Void> httpGetPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
-        return this.httpPublisher(req, resp, method, handleObject, null);
+        CommonResponse<Object> commonResponse;
+        int status = HttpResponseStatus.OK.code();
+        try {
+            commonResponse = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, null));
+        } catch (Exception e) {
+            commonResponse = exceptionPublisher(e);
+            status = commonResponse.getErr_code();
+        }
+        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .status(status)
+                .sendString(Mono.just(commonResponse).map(gsonCreate::toJson));
     }
 
     private <T> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
-        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .status(HttpResponseStatus.OK)
-            .sendString(req
+        return req
                 .receive()
                 .map(byteBuf -> {
-                    CommonResponse<Object> response;
+                    CommonResponse<Object> commonResponse;
                     try {
-                        response = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
+                        commonResponse = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
                     } catch (Exception e) {
-                        response = exceptionPublisher(e);
+                        commonResponse = exceptionPublisher(e);
                     }
-                    return response;
+                    return commonResponse;
                 })
-                .map(gsonCreate::toJson)
-            );
-    }
-
-    private <T> Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject, ByteBuf content) {
-        CommonResponse<Object> response;
-        int status = HttpResponseStatus.OK.code();
-        try {
-            response = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, content));
-        } catch (Exception e) {
-            response = exceptionPublisher(e);
-            status = response.getErr_code();
-        }
-        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .status(status)
-            .sendString(Mono.just(response).map(gsonCreate::toJson));
+                .flatMap(commonResponse -> {
+                    return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                            .status(commonResponse.getErr_code() == 0
+                                    ? HttpResponseStatus.OK.code()
+                                    : commonResponse.getErr_code()
+                            )
+                            .sendString(Mono.just(commonResponse).map(gsonCreate::toJson));
+                });
     }
 
     private CommonResponse<Object> exceptionPublisher(Exception e) {
@@ -262,7 +265,7 @@ public class Dispatcher {
         int errorCode = CommonError.FAIL.code();
         String errorMessage = e.getMessage();
         // if is CommonException
-        if (e.getCause()!=null && e.getCause().getClass()==CommonException.class) {
+        if (e.getCause()!=null && e.getCause().getClass()== CommonException.class) {
             CommonException ce = (CommonException) e.getCause();
             errorCode = ce.getCode();
             errorMessage = ce.getMessage();
