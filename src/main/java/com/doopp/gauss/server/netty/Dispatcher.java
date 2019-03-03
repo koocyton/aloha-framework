@@ -239,25 +239,24 @@ public class Dispatcher {
     }
 
     private <T> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
+
         return req
-                .receive()
-                .map(byteBuf -> {
-                    CommonResponse<Object> commonResponse;
-                    try {
-                        commonResponse = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
-                    } catch (Exception e) {
-                        commonResponse = exceptionPublisher(e);
-                    }
-                    return commonResponse;
-                })
-                .flatMap(commonResponse -> {
-                    return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-                            .status(commonResponse.getErr_code() == 0
-                                    ? HttpResponseStatus.OK.code()
-                                    : commonResponse.getErr_code()
-                            )
-                            .sendString(Mono.just(commonResponse).map(gsonCreate::toJson));
-                });
+            .receive()
+            .aggregate()
+            .map(byteBuf -> {
+                CommonResponse<Object> commonResp;
+                try {
+                    commonResp = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
+                } catch (Exception e) {
+                    commonResp = exceptionPublisher(e);
+                }
+                return commonResp;
+            })
+            .flatMap(commonResp->resp
+                .header(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+                .status(commonResp.getErr_code()==0 ? HttpResponseStatus.OK.code() : commonResp.getErr_code())
+                .sendString(Mono.just(commonResp).map(gsonCreate::toJson)).then()
+            );
     }
 
     private CommonResponse<Object> exceptionPublisher(Exception e) {
