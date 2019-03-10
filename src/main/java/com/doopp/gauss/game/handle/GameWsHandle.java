@@ -1,9 +1,8 @@
-package com.doopp.gauss.admin.handle;
+package com.doopp.gauss.game.handle;
 
 import com.doopp.gauss.server.handle.AbstractWebSocketServerHandle;
 import com.google.inject.Singleton;
 import io.netty.channel.Channel;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
 

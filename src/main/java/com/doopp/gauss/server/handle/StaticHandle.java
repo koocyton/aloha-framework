@@ -1,15 +1,10 @@
 package com.doopp.gauss.server.handle;
 
-import com.doopp.gauss.common.exception.CommonException;
-import com.doopp.gauss.server.message.CommonResponse;
-import com.google.gson.Gson;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;
 import reactor.netty.NettyOutbound;
 import reactor.netty.http.server.HttpServerRequest;
@@ -26,7 +21,6 @@ import java.util.HashMap;
 
 @Slf4j
 public class StaticHandle {
-
 
     public NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
 //        if (!this.doFilter(req, resp)) {
@@ -63,8 +57,8 @@ public class StaticHandle {
             }
             ByteBuf buf = Unpooled.wrappedBuffer(bout.toByteArray()).retain();
             return resp
-                    .header(HttpHeaderNames.CONTENT_TYPE, contentType(requirePath.substring(requirePath.lastIndexOf(".") + 1)))
-                    .send(ByteBufMono.just(buf));
+                    .header(HttpHeaderNames.CONTENT_TYPE, contentType(requirePath.substring(requirePath.lastIndexOf(".") + 1))+"; charset=UTF-8")
+                    .sendObject(ByteBufMono.just(buf));
         } catch (IOException ue) {
             throw new RuntimeException(ue);
         }

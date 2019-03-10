@@ -39,14 +39,14 @@ angular.module('ngLoginApp', ['ui.bootstrap', 'ngCookies'])
     .controller('ngLoginController', ['$scope', '$http', '$cookies', function ($scope, $http, $cookies) {
         $scope.formData = {};
         $scope.submitForm = function() {
-            $http.post('/api/login', $scope.formData)
+            $http.post('/oauth/api/login', $scope.formData)
                 .then(function(response) {
                         if (response.status===200) {
                             let loginResponse = response.data.data;
                             let expireDate = new Date();
                             expireDate.setDate(expireDate.getDate() + loginResponse.expire);
                             $cookies.put("se_id", loginResponse.token,{'expire': expireDate});
-                            window.top.location = "/admin/index.html";
+                            window.top.location = "/manage/index.html";
                         }
                     },
                     function(response) {
@@ -62,7 +62,7 @@ angular.module('ngLoginApp', ['ui.bootstrap', 'ngCookies'])
             $scope.status.isopen = !$scope.status.isopen;
         };
         // 登录需要 app 认证
-        $http.get('/admin/api/authentication').then(function(response) {
+        $http.get('/manage/api/authentication').then(function(response) {
             if (response.status===200) {
                 let authenticationResponse = response.data.data;
                 $scope.formData.client = authenticationResponse.client;
@@ -239,13 +239,13 @@ let appRun = function ($rootScope, $state, $http) {
 /** check user login **/
 let checkLoginSuccess = function($rootScope, $state, $http, success) {
     // 读取登录消息
-    $http.get('/admin/api/manager')
+    $http.get('/manage/api/manager')
         .then(function(response){
             if (response.status===200) {
                 success($rootScope, $state, response.data);
             }
             else {
-                window.top.location = "/admin/login.html";
+                window.top.location = "/manage/login.html";
             }
         });
 };
@@ -277,11 +277,11 @@ angular.module('ngMainApp', ['ui.router', 'ui.bootstrap'])
     }])
     // user controller
     .controller('ngUserController', ['$scope', '$http', function ($scope, $http) {
-        pageList($scope, $http, "/admin/api/users");
+        pageList($scope, $http, "/manage/api/users");
     }])
     // app controller
     .controller('ngAppController', ['$scope', '$http', function ($scope, $http) {
-        pageList($scope, $http, "/admin/api/apps");
+        pageList($scope, $http, "/manage/api/apps");
     }])
     // app execute
     .run(['$rootScope', '$state', '$http', appRun]);

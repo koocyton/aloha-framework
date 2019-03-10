@@ -3,6 +3,7 @@ package com.doopp.gauss.server.redis;
 import com.doopp.gauss.server.util.SerializeUtils;
 import com.google.common.collect.Maps;
 import com.google.gson.GsonBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.ShardedJedis;
@@ -12,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
+@Slf4j
 public class CustomShadedJedis {
 
     private final Logger logger = LoggerFactory.getLogger(CustomShadedJedis.class);

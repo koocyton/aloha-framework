@@ -8,20 +8,57 @@ import java.util.List;
 
 public interface ClientDao {
 
-    @Select("<script>" +
-        "        SELECT\n" +
-        "        *\n" +
-        "        FROM\n" +
-        "        `oauth_client`\n" +
-        "        WHERE\n" +
-        "        1\n" +
-        "        ORDER BY `id` DESC" +
-        "</script>")
-    Client getById(@Param("id") Long id);
+    @Select("SELECT * FROM `oauth_client` WHERE 1 ORDER BY `id` DESC")
+    List<Client> getList();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     @Select("<script>" +
         "SELECT * FROM `oauth_client` WHERE `id` = ${id} LIMIT 1" +
         "</script>")
-    List<Client> getList();
+    Client getById(@Param("id") Long id);
 }
 

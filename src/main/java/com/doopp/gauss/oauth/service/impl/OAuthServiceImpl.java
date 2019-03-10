@@ -1,6 +1,6 @@
-package com.doopp.gauss.api.service.impl;
+package com.doopp.gauss.oauth.service.impl;
 
-import com.doopp.gauss.api.service.OAuthService;
+import com.doopp.gauss.oauth.service.OAuthService;
 import com.doopp.gauss.common.dao.ClientDao;
 import com.doopp.gauss.common.dao.UserDao;
 import com.doopp.gauss.common.defined.CommonError;
@@ -14,11 +14,15 @@ import com.doopp.gauss.common.utils.EncryHelper;
 import com.doopp.gauss.server.redis.CustomShadedJedis;
 import com.doopp.gauss.server.util.IdWorker;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 public class OAuthServiceImpl implements OAuthService {
 
     @Inject
@@ -31,7 +35,49 @@ public class OAuthServiceImpl implements OAuthService {
     private ClientDao clientDao;
 
     @Inject
+    @Named("userSessionRedis")
     private CustomShadedJedis userSessionRedis;
+
+    @Override
+    public Mono<User> userLogin(String account, String password) {
+        User user = userDao.getByAccount(account);
+        if (user==null) {
+            return Mono.error(new CommonException(CommonError.ACCOUNT_NO_EXIST));
+        }
+        if (!user.getPassword().equals(user.getHashPassword(password))) {
+            return Mono.error(new CommonException(CommonError.PASSWORD_INCORRECT));
+        }
+        return Mono.just(user);
+    }
+
+    @Override
+    public Mono<User> userAutoLogin(String account) {
+        return this
+            .userRegister(account, account)
+            .onErrorResume(throwable -> {
+                log.info("account {}", account);
+                User user = userDao.getByAccount(account);
+                log.info("user {}", user);
+                return Mono.just(user);
+            });
+    }
+
+    @Override
+    public Mono<User> userRegister(String account, String password) {
+        User user = new User();
+        user.setId(userIdWorker.nextId());
+        user.setAccount(account);
+        user.setPassword(user.getHashPassword(password));
+        try {
+            log.info("{}", user);
+            userDao.create(user);
+            return Mono.just(user);
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+            return Mono.error(new CommonException(CommonError.ACCOUNT_EXIST));
+        }
+    }
 
     @Override
     public void checkLoginRequest(OAuthRequest<LoginRequest> commonRequest) throws CommonException {
@@ -62,33 +108,6 @@ public class OAuthServiceImpl implements OAuthService {
     }
 
     @Override
-    public User userLogin(String account, String password) throws CommonException {
-        User user = userDao.getByAccount(account);
-        if (user==null) {
-            throw new CommonException(CommonError.ACCOUNT_NO_EXIST);
-        }
-        if (!user.getPassword().equals(user.getHashPassword(password))) {
-            throw new CommonException(CommonError.PASSWORD_INCORRECT);
-        }
-        return user;
-    }
-
-    @Override
-    public User userRegister(String account, String password) throws CommonException {
-        User user = new User();
-        user.setId(userIdWorker.nextId());
-        user.setAccount(account);
-        user.setPassword(user.getHashPassword(password));
-        try {
-            userDao.create(user);
-        }
-        catch(Exception e) {
-            throw new CommonException(CommonError.ACCOUNT_EXIST);
-        }
-        return user;
-    }
-
-    @Override
     public String createSessionToken(User user) {
         this.removeSessionToken(user.getId());
         String userId = String.valueOf(user.getId());
@@ -99,8 +118,7 @@ public class OAuthServiceImpl implements OAuthService {
         return token;
     }
 
-    @Override
-    public void removeSessionToken(String token) {
+    private void removeSessionToken(String token) {
         userSessionRedis.del(token);
         String userId = userSessionRedis.get(token);
         if (userId!=null) {
@@ -108,8 +126,7 @@ public class OAuthServiceImpl implements OAuthService {
         }
     }
 
-    @Override
-    public void removeSessionToken(Long userId) {
+    private void removeSessionToken(Long userId) {
         String id = String.valueOf(userId);
         userSessionRedis.del(id);
         String token = userSessionRedis.get(id);
@@ -119,15 +136,16 @@ public class OAuthServiceImpl implements OAuthService {
     }
 
     private User getUserByToken(String token) {
+        // log.info(">>> token {} ", token);
         String userId = userSessionRedis.get(token);
         if (userId==null) {
             return null;
         }
+        // log.info(">>> userId {} ", userId);
         return userDao.getById(Long.valueOf(userId));
     }
 
-    @Override
-    public Client checkCommonRequest(OAuthRequest commonRequest) throws CommonException {
+    private Client checkCommonRequest(OAuthRequest commonRequest) throws CommonException {
         // 判断时间是否过期
         if (this.isExpired(commonRequest.getTime())) {
             throw new CommonException(CommonError.EXPIRE_TIME);
@@ -160,6 +178,10 @@ public class OAuthServiceImpl implements OAuthService {
     @Override
     public User checkRequestHeader(String authenticationHeader) throws CommonException
     {
+        if (authenticationHeader==null) {
+            throw new CommonException(CommonError.ACCOUNT_NO_EXIST);
+        }
+        // log.info(">>> {}", authenticationHeader);
         Map<String, String> authenticationParams = this.getQueryParams(authenticationHeader);
         if (authenticationParams.get("time")==null
             || authenticationParams.get("client")==null
