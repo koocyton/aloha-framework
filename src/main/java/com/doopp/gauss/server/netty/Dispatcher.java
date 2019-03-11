@@ -169,7 +169,7 @@ public class Dispatcher {
      */
     private Mono<RequestAttribute> doFilter(HttpServerRequest req, HttpServerResponse resp, RequestAttribute requestAttribute) {
         for (String key : this.filters.keySet()) {
-            if (req.uri().substring(0, key.length()).equals(key)) {
+            if (req.uri().length()>=key.length() && req.uri().substring(0, key.length()).equals(key)) {
                 log.info("request {}", req.uri(), key);
                 return this.filters.get(key).doFilter(req, resp, requestAttribute);
             }
@@ -199,19 +199,27 @@ public class Dispatcher {
     }
 
     private Publisher<Void> websocketPublisher(HttpServerRequest request, HttpServerResponse response) {
-        AtomicInteger serverRes = new AtomicInteger();
-        return response
-            .header("content-type", "text/plain")
-            .sendWebsocket((in, out) ->
-                out.options(NettyPipeline.SendOptions::flushOnEach)
-                    .sendString(in.receive()
-                        .asString()
-                        .publishOn(Schedulers.single())
-                        .doOnNext(s -> serverRes.incrementAndGet())
-                        .map(it -> it)
-                        .log("socket-server")
-                    )
-            );
+        return this.doFilter(request, response, new RequestAttribute())
+                .flatMap(requestAttribute -> {
+                    log.info("abc");
+                    AtomicInteger serverRes = new AtomicInteger();
+                    return response
+                        .header("content-type", "text/plain")
+                        .sendWebsocket((in, out) ->
+                            out.options(NettyPipeline.SendOptions::flushOnEach)
+                                .sendString(in
+                                        .withConnection(connection ->{
+                                            requestAttribute.setAttribute("channel", connection.channel());
+                                        })
+                                        .receive()
+                                        .asString()
+                                        .publishOn(Schedulers.single())
+                                        .doOnNext(s -> serverRes.incrementAndGet())
+                                        .map(it -> it)
+                                        .log("socket-server")
+                                )
+                        );
+                });
     }
 
     private Publisher<Void> websocketPublisher2(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject) {
