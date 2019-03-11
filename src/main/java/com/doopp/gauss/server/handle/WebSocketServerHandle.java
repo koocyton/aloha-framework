@@ -1,13 +1,14 @@
 package com.doopp.gauss.server.handle;
 
+import com.doopp.gauss.common.entity.User;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.*;
 
 public interface WebSocketServerHandle<T> {
 
-    void onConnect(Channel channel);
+    void onConnect(User user, Channel channel);
 
-    void onMessage(WebSocketFrame frame, Channel channel);
+    void onMessage(User user, String text);
 
     void onTextMessage(TextWebSocketFrame frame, Channel channel);
 

@@ -1,8 +1,11 @@
 package com.doopp.gauss.server.netty;
 
 import com.doopp.gauss.common.defined.CommonError;
+import com.doopp.gauss.common.defined.CommonField;
+import com.doopp.gauss.common.entity.User;
 import com.doopp.gauss.common.exception.CommonException;
 import com.doopp.gauss.common.message.CommonResponse;
+import com.doopp.gauss.game.handle.GameWsHandle;
 import com.doopp.gauss.server.filter.iFilter;
 import com.doopp.gauss.server.handle.StaticHandle;
 import com.doopp.gauss.server.handle.WebSocketServerHandle;
@@ -201,21 +204,28 @@ public class Dispatcher {
     private Publisher<Void> websocketPublisher(HttpServerRequest request, HttpServerResponse response) {
         return this.doFilter(request, response, new RequestAttribute())
                 .flatMap(requestAttribute -> {
-                    log.info("abc");
-                    AtomicInteger serverRes = new AtomicInteger();
+                    WebSocketServerHandle handleObject = new GameWsHandle();
                     return response
                         .header("content-type", "text/plain")
                         .sendWebsocket((in, out) ->
                             out.options(NettyPipeline.SendOptions::flushOnEach)
                                 .sendString(in
                                         .withConnection(connection ->{
-                                            requestAttribute.setAttribute("channel", connection.channel());
+                                            handleObject.onConnect(
+                                                    requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class),
+                                                    connection.channel()
+                                            );
                                         })
                                         .receive()
                                         .asString()
                                         .publishOn(Schedulers.single())
-                                        .doOnNext(s -> serverRes.incrementAndGet())
-                                        .map(it -> it)
+                                        .map(it -> {
+                                            handleObject.onMessage(
+                                                    requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class),
+                                                    it
+                                            );
+                                            return "ok";
+                                        })
                                         .log("socket-server")
                                 )
                         );

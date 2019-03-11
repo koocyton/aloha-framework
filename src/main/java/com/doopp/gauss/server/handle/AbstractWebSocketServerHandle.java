@@ -1,5 +1,6 @@
 package com.doopp.gauss.server.handle;
 
+import com.doopp.gauss.common.entity.User;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.*;
@@ -7,12 +8,12 @@ import io.netty.handler.codec.http.websocketx.*;
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
 
     @Override
-    public void onConnect(Channel channel) {
+    public void onConnect(User user, Channel channel) {
         channel.writeAndFlush(new TextWebSocketFrame("connected " + channel.id()));
     }
 
     @Override
-    public void onMessage(WebSocketFrame frame, Channel channel) {
+    public void onMessage(User user, String text) {
     }
 
     @Override
