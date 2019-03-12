@@ -203,6 +203,18 @@ public class Dispatcher {
 
     private Publisher<Void> websocketPublisher(HttpServerRequest request, HttpServerResponse response) {
         return this.doFilter(request, response, new RequestAttribute())
+            .flatMap(requestAttribute -> {
+                WebSocketServerHandle handleObject = new GameWsHandle();
+                return response
+                    .header("content-type", "text/plain")
+                    .sendWebsocket((in, out) ->
+                        this.websocketPublisher2(in, out, handleObject)
+                    );
+            });
+    }
+
+    private Publisher<Void> websocketPublisher1(HttpServerRequest request, HttpServerResponse response) {
+        return this.doFilter(request, response, new RequestAttribute())
                 .flatMap(requestAttribute -> {
                     WebSocketServerHandle handleObject = new GameWsHandle();
                     return response
