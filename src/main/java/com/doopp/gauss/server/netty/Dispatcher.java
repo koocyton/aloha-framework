@@ -172,7 +172,7 @@ public class Dispatcher {
      */
     private Mono<RequestAttribute> doFilter(HttpServerRequest req, HttpServerResponse resp, RequestAttribute requestAttribute) {
         for (String key : this.filters.keySet()) {
-            if (req.uri().length()>=key.length() && req.uri().substring(0, key.length()).equals(key)) {
+            if (req.uri().length() >= key.length() && req.uri().substring(0, key.length()).equals(key)) {
                 log.info("request {}", req.uri(), key);
                 return this.filters.get(key).doFilter(req, resp, requestAttribute);
             }
@@ -208,43 +208,35 @@ public class Dispatcher {
                 return response
                     .header("content-type", "text/plain")
                     .sendWebsocket((in, out) ->
-                        this.websocketPublisher2(in, out, handleObject)
+                        this.websocketPublisher1(in, out, handleObject, requestAttribute)
                     );
             });
     }
 
-    private Publisher<Void> websocketPublisher1(HttpServerRequest request, HttpServerResponse response) {
-        return this.doFilter(request, response, new RequestAttribute())
-                .flatMap(requestAttribute -> {
-                    WebSocketServerHandle handleObject = new GameWsHandle();
-                    return response
-                        .header("content-type", "text/plain")
-                        .sendWebsocket((in, out) ->
-                            out.options(NettyPipeline.SendOptions::flushOnEach)
-                                .sendString(in
-                                        .withConnection(connection ->{
-                                            handleObject.onConnect(
-                                                    requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class),
-                                                    connection.channel()
-                                            );
-                                        })
-                                        .receive()
-                                        .asString()
-                                        .publishOn(Schedulers.single())
-                                        .map(it -> {
-                                            handleObject.onMessage(
-                                                    requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class),
-                                                    it
-                                            );
-                                            return "ok";
-                                        })
-                                        .log("socket-server")
-                                )
-                        );
-                });
+    private Publisher<Void> websocketPublisher1(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
+        return out.options(NettyPipeline.SendOptions::flushOnEach)
+            .sendString(in
+                .withConnection(connection -> {
+                    handleObject.onConnect(
+                        requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class),
+                        connection.channel()
+                    );
+                })
+                .receive()
+                .asString()
+                .publishOn(Schedulers.single())
+                .map(it -> {
+                    handleObject.onMessage(
+                        requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class),
+                        it
+                    );
+                    return "ok";
+                })
+                .log("socket-server")
+            );
     }
 
-    private Publisher<Void> websocketPublisher2(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject) {
+    private Publisher<Void> websocketPublisher2(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
         // with connect
         return out.withConnection(c -> {
             wsChannels.put(in.headers().get("Sec-WebSocket-Key"), c.channel());
@@ -272,6 +264,31 @@ public class Dispatcher {
                 })
                 .then()
             );
+    }
+
+    private Publisher<Void> websocketPublisher3(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
+        return out
+            .withConnection(c -> {
+                // on connect
+                handleObject.onConnect(c.channel());
+                // get message
+                in.aggregateFrames()
+                    .receiveFrames()
+                    .map(frame -> {
+                        if (frame instanceof TextWebSocketFrame) {
+                            handleObject.onTextMessage((TextWebSocketFrame) frame, c.channel());
+                        } else if (frame instanceof BinaryWebSocketFrame) {
+                            handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
+                        } else if (frame instanceof PingWebSocketFrame) {
+                            handleObject.onPingMessage((PingWebSocketFrame) frame, c.channel());
+                        } else if (frame instanceof PongWebSocketFrame) {
+                            handleObject.onPongMessage((PongWebSocketFrame) frame, c.channel());
+                        } else if (frame instanceof CloseWebSocketFrame) {
+                            handleObject.close((CloseWebSocketFrame) frame, c.channel());
+                        }
+                        return "";
+                    });
+            });
     }
 
     private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, RequestAttribute requestAttribute, ByteBuf content) {
