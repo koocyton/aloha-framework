@@ -21,6 +21,7 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
 
     @Override
     public void onConnect(Channel channel) {
+        log.info("{}", channel);
         super.allSendTextMessage("有新人加入哦");
         super.onConnect(channel);
         Mono<User> userMono = manageService.getUser(1L);
@@ -35,8 +36,8 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
     }
 
     @Override
-    public void close(Channel channel) {
-        super.close(channel);
+    public void disconnect(Channel channel) {
+        super.disconnect(channel);
         super.allSendTextMessage("有人离开了哦");
     }
 }

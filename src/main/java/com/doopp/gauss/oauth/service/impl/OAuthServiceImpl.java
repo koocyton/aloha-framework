@@ -67,7 +67,7 @@ public class OAuthServiceImpl implements OAuthService {
         user.setAccount(account);
         user.setPassword(user.getHashPassword(password));
         try {
-            log.info("{}", user);
+            // log.info("{}", user);
             userDao.create(user);
             return Mono.just(user);
         }

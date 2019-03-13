@@ -6,4 +6,6 @@ public class CommonField {
     public static String SESSION_KEY  = "se_id";
 
     public static String CURRENT_USER  = "current_user";
+
+    public static String CURRENT_CHANNEL  = "current_channel";
 }

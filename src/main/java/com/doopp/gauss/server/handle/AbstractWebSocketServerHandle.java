@@ -4,7 +4,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.*;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +23,10 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
 
     public void sendTextMessage(String text, Channel channel) {
         channel.writeAndFlush(new TextWebSocketFrame(text));
+    }
+
+    public Flux<String> receiveTextMessage(Channel channel) {
+        return Flux.just("aaa", "bbb", "ccc");
     }
 
     public void allSendTextMessage(String text) {
@@ -56,7 +60,7 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
         channel.writeAndFlush(new PingWebSocketFrame());
     }
 
-    public void close(Channel channel) {
+    public void disconnect(Channel channel) {
         if (channel!=null) {
             try {
                 channelMap.remove(channel.id().asLongText());

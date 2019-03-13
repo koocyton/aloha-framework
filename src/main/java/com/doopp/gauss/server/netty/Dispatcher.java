@@ -255,7 +255,7 @@ public class Dispatcher {
                         handleObject.onPongMessage((PongWebSocketFrame) frame, wsChannels.get(wsKey));
                     } else if (frame instanceof CloseWebSocketFrame) {
                         log.info("1 channel {} close", wsChannels.get(wsKey).id());
-                        handleObject.close(wsChannels.get(wsKey));
+                        handleObject.disconnect(wsChannels.get(wsKey));
                         wsChannels.remove(wsKey);
                     }
                 })
@@ -271,7 +271,7 @@ public class Dispatcher {
                     conn.channel().attr(AttributeKey.valueOf("request-attribute")).set(requestAttribute);
                     conn.onDispose().subscribe(null, null, () -> {
                             conn.channel().close();
-                            handleObject.close(conn.channel());
+                            handleObject.disconnect(conn.channel());
                             // System.out.println("context.onClose() completed");
                         }
                     );
@@ -288,7 +288,8 @@ public class Dispatcher {
                                 } else if (frame instanceof PongWebSocketFrame) {
                                     handleObject.onPongMessage((PongWebSocketFrame) frame, conn.channel());
                                 } else if (frame instanceof CloseWebSocketFrame) {
-                                    handleObject.close(conn.channel());
+                                    conn.channel().close();
+                                    handleObject.disconnect(conn.channel());
                                 }
                                 return "";
                             })
