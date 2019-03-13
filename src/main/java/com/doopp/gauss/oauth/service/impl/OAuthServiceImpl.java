@@ -55,9 +55,7 @@ public class OAuthServiceImpl implements OAuthService {
         return this
             .userRegister(account, account)
             .onErrorResume(throwable -> {
-                log.info("account {}", account);
                 User user = userDao.getByAccount(account);
-                log.info("user {}", user);
                 return Mono.just(user);
             });
     }

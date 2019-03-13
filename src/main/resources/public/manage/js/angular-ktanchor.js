@@ -74,17 +74,44 @@ angular.module('ngLoginApp', ['ui.bootstrap', 'ngCookies'])
     }]
 );
 
-/** logout **/
-angular.module('ngLogoutApp', []).run(function() {
-        let ws = new WebSocketService("/oauth/websocket");
-        ws.onMessage(function (e) {
-            console.log(e);
-        });
-        // setInterval(function(){
-        //     console.log("ws.send(\"hello\")");
-        //     ws.send("hello");
-        // }, 1000);
+/** chat app **/
+angular.module('ngChatApp', ['ui.bootstrap', 'ngCookies'])
+    .controller('ngChatController', ['$scope', '$http', '$cookies', function ($scope, $http, $cookies) {
+    $scope.formData = {};
+    $scope.submitForm = function() {
+        $http.post('/oauth/api/auto-login', $scope.formData)
+            .then(function(response) {
+                    if (response.status===200) {
+                        let loginResponse = response.data.data;
+                        let expireDate = new Date();
+                        expireDate.setDate(expireDate.getDate() + loginResponse.expire);
+                        $cookies.put("se_id", loginResponse.token,{'expire': expireDate});
+                        let ws = new WebSocketService("/manage/chat/ws");
+                    }
+                },
+                function(response) {
+                    console.log(response.data.message)
+                });
+    };
+    // 清除 cookie
+    $cookies.remove("se_id");
+    // 下滑菜单
+    $scope.toggleDropdown = function($event) {
+        $event.preventDefault();
+        $event.stopPropagation();
+        $scope.status.isopen = !$scope.status.isopen;
+    };
+    // 登录需要 app 认证
+    $http.get('/manage/api/authentication').then(function(response) {
+        if (response.status===200) {
+            let authenticationResponse = response.data.data;
+            $scope.formData.client = authenticationResponse.client;
+            $scope.formData.time = authenticationResponse.time;
+            $scope.formData.security = authenticationResponse.security;
+            $scope.formData.data = {account:"", password:""};
+        }
     });
+}]);
 
 /** 高亮代码块 **/
 let highlightBlock = function() {

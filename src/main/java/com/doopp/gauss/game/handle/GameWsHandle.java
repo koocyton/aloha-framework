@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import javax.ws.rs.Path;
 
 @Slf4j
-@Path("/oauth/websocket")
+@Path("/manage/chat/ws")
 public class GameWsHandle extends AbstractWebSocketServerHandle {
 
     @Override

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Logout</title>
+  <title>websocket demo</title>
   <link href="https://cdn.bootcss.com/twitter-bootstrap/3.4.0/css/bootstrap.min.css" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
   <script src="js/angular.min.js"></script>
@@ -19,18 +19,23 @@
   <div class="body-background blur-10"></div>
 </div>
 
-<div class="body-content" style="width:360px;margin-top:200px;margin-left:calc(50% - 180px);">
+<div class="body-content" ng-controller="ngChatController"
+     style="width:360px;margin-top:200px;margin-left:calc(50% - 180px);">
+
+  <form ng-submit="submitForm()">
     <div class="modal-content">
       <div class="modal-body">
-        <div>
-          退出登录 ？
+        <div class="form-group">
+          <input type="text" name="account" class="form-control" autocomplete="off" placeholder="请输入昵称"
+                 ng-model="formData.data.account" maxlength="50">
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-success" style="width:100%;">进入聊天室</button>
         </div>
       </div>
-      <div class="modal-footer">
-        <a class="btn btn-info" href="login.html">退出</a>
-        <a class="btn btn-success" href="index.html">返回</a>
-      </div>
     </div>
+  </form>
+
 </div>
 
 </body>
