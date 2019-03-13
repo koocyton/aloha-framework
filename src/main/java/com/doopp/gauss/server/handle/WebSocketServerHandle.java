@@ -3,7 +3,7 @@ package com.doopp.gauss.server.handle;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.*;
 
-public interface WebSocketServerHandle<T> {
+public interface WebSocketServerHandle {
 
     void onConnect(Channel channel);
 

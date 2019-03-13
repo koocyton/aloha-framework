@@ -33,6 +33,7 @@ public class OAuthFilter implements iFilter {
             "/oauth/api/login",
             "/oauth/api/register",
             "/oauth/api/test",
+            "/oauth/websocket",
             "/favicon.ico"
         };
 

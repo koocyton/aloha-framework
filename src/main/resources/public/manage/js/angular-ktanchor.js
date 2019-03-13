@@ -76,7 +76,7 @@ angular.module('ngLoginApp', ['ui.bootstrap', 'ngCookies'])
 
 /** logout **/
 angular.module('ngLogoutApp', []).run(function() {
-        let ws = new WebSocketService("/game");
+        let ws = new WebSocketService("/oauth/websocket");
         ws.onMessage(function (e) {
             console.log(e);
         });

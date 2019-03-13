@@ -205,10 +205,6 @@ public class Dispatcher {
 
     private Publisher<Void> websocketPublisher(HttpServerRequest request, HttpServerResponse response) {
         return this.doFilter(request, response, new RequestAttribute())
-                .onErrorResume(throwable -> {
-                    log.info("throwable {}", throwable);
-                    return Mono.just(new RequestAttribute());
-                })
                 .flatMap(requestAttribute -> {
                     WebSocketServerHandle handleObject = injector.getInstance(GameWsHandle.class);
                     return response
@@ -297,22 +293,6 @@ public class Dispatcher {
                                 return "";
                             })
                             .blockLast();
-                });
-    }
-
-    private Publisher<Void> websocketPublisher4(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
-        return out
-                .withConnection(conn -> {
-                    conn.onDispose().subscribe(
-                            c -> { // no-op
-                            },
-                            t -> {
-                                t.printStackTrace();
-                            },
-                            () -> {
-                                System.out.println("context.onClose() completed");
-                            }
-                    );
                 });
     }
 
