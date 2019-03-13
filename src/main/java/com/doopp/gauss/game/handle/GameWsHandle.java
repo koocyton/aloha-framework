@@ -7,11 +7,18 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.ws.rs.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Path("/game")
-@Singleton
 public class GameWsHandle extends AbstractWebSocketServerHandle {
+
+    @Override
+    public void onConnect(Channel channel) {
+        super.allSendTextMessage("有新人加入哦");
+        super.onConnect(channel);
+    }
 
     @Override
     public void onTextMessage(TextWebSocketFrame frame, Channel channel) {

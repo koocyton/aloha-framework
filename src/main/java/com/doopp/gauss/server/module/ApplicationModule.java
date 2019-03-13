@@ -1,5 +1,6 @@
 package com.doopp.gauss.server.module;
 
+import com.doopp.gauss.game.handle.GameWsHandle;
 import com.doopp.gauss.oauth.service.ManageService;
 import com.doopp.gauss.oauth.service.OAuthService;
 import com.doopp.gauss.oauth.service.impl.ManageServiceImpl;
@@ -23,6 +24,7 @@ public class ApplicationModule extends AbstractModule {
 		bind(OAuthService.class).to(OAuthServiceImpl.class).in(Scopes.SINGLETON);
 		bind(ManageService.class).to(ManageServiceImpl.class).in(Scopes.SINGLETON);
 		bind(HttpClientUtil.class).in(Scopes.SINGLETON);
+		bind(GameWsHandle.class).in(Scopes.SINGLETON);
 	}
 
 	@Singleton

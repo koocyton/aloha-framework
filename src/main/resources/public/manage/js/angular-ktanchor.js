@@ -80,10 +80,10 @@ angular.module('ngLogoutApp', []).run(function() {
         ws.onMessage(function (e) {
             console.log(e);
         });
-        setInterval(function(){
-            console.log("ws.send(\"hello\")");
-            ws.send("hello");
-        }, 1000);
+        // setInterval(function(){
+        //     console.log("ws.send(\"hello\")");
+        //     ws.send("hello");
+        // }, 1000);
     });
 
 /** 高亮代码块 **/

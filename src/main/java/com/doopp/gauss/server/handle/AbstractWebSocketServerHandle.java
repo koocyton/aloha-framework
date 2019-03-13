@@ -1,24 +1,44 @@
 package com.doopp.gauss.server.handle;
 
-import com.doopp.gauss.common.entity.User;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.*;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
+import java.util.Map;
+
+@Slf4j
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
 
+    private Map<String, Channel> channelMap = new HashMap<>();
+
     @Override
-    public void onConnect(User user, Channel channel) {
-        channel.writeAndFlush(new TextWebSocketFrame("connected " + channel.id()));
+    public void onConnect(Channel channel) {
+        channelMap.put(channel.id().asLongText(), channel);
+        log.info("{}", channelMap);
+        // channel.writeAndFlush(new TextWebSocketFrame("connected " + channel.id()));
+    }
+
+    public void sendTextMessage(String text, Channel channel) {
+        channel.writeAndFlush(new TextWebSocketFrame(text));
+    }
+
+    public void allSendTextMessage(String text) {
+        for(Channel channel : channelMap.values()) {
+            channel.writeAndFlush(new TextWebSocketFrame(text));
+        }
     }
 
     @Override
-    public void onMessage(User user, String text) {
+    public void onTextMessage(String text, Channel channel) {
+        // channel.writeAndFlush(new TextWebSocketFrame("message " + text));
     }
 
     @Override
     public void onTextMessage(TextWebSocketFrame frame, Channel channel) {
-        channel.writeAndFlush(new TextWebSocketFrame("message " + channel.id()));
+        // channel.writeAndFlush(new TextWebSocketFrame("message " + channel.id()));
     }
 
     @Override
@@ -36,13 +56,11 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
         channel.writeAndFlush(new PingWebSocketFrame());
     }
 
-    public void close(CloseWebSocketFrame frame, Channel channel) {
-        this.close(channel);
-    }
-
     public void close(Channel channel) {
         if (channel!=null) {
             try {
+                channelMap.remove(channel.id().asLongText());
+                channel.disconnect();
                 channel.close();
             }
             catch(Exception e) {

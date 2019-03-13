@@ -14,6 +14,7 @@ import com.doopp.gauss.server.resource.RequestAttributeParam;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
+import com.google.inject.Inject;
 import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -204,11 +205,11 @@ public class Dispatcher {
     private Publisher<Void> websocketPublisher(HttpServerRequest request, HttpServerResponse response) {
         return this.doFilter(request, response, new RequestAttribute())
             .flatMap(requestAttribute -> {
-                WebSocketServerHandle handleObject = new GameWsHandle();
+                WebSocketServerHandle handleObject = injector.getInstance(GameWsHandle.class);
                 return response
                     .header("content-type", "text/plain")
                     .sendWebsocket((in, out) ->
-                        this.websocketPublisher1(in, out, handleObject, requestAttribute)
+                        this.websocketPublisher3(in, out, handleObject, requestAttribute)
                     );
             });
     }
@@ -217,19 +218,14 @@ public class Dispatcher {
         return out.options(NettyPipeline.SendOptions::flushOnEach)
             .sendString(in
                 .withConnection(connection -> {
-                    handleObject.onConnect(
-                        requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class),
-                        connection.channel()
-                    );
+                    requestAttribute.setAttribute("channel", connection.channel());
+                    handleObject.onConnect(connection.channel());
                 })
                 .receive()
                 .asString()
                 .publishOn(Schedulers.single())
                 .map(it -> {
-                    handleObject.onMessage(
-                        requestAttribute.getAttribute(CommonField.CURRENT_USER, User.class),
-                        it
-                    );
+                    handleObject.onTextMessage(it, requestAttribute.getAttribute("channel", Channel.class));
                     return "ok";
                 })
                 .log("socket-server")
@@ -258,7 +254,7 @@ public class Dispatcher {
                         handleObject.onPongMessage((PongWebSocketFrame) frame, wsChannels.get(wsKey));
                     } else if (frame instanceof CloseWebSocketFrame) {
                         log.info("1 channel {} close", wsChannels.get(wsKey).id());
-                        handleObject.close((CloseWebSocketFrame) frame, wsChannels.get(wsKey));
+                        handleObject.close(wsChannels.get(wsKey));
                         wsChannels.remove(wsKey);
                     }
                 })
@@ -284,10 +280,11 @@ public class Dispatcher {
                         } else if (frame instanceof PongWebSocketFrame) {
                             handleObject.onPongMessage((PongWebSocketFrame) frame, c.channel());
                         } else if (frame instanceof CloseWebSocketFrame) {
-                            handleObject.close((CloseWebSocketFrame) frame, c.channel());
+                            handleObject.close(c.channel());
                         }
                         return "";
-                    });
+                    })
+                    .blockLast();
             });
     }
 
