@@ -82,4 +82,9 @@ public class ManageServiceImpl implements ManageService {
     public  Mono<List<Client>> getClients() {
         return Mono.just(clientDao.getList());
     }
+
+    @Override
+    public  Mono<User> getUser(Long id) {
+        return Mono.just(userDao.getById(id));
+    }
 }

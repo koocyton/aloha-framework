@@ -13,5 +13,7 @@ public interface ManageService {
 
     Mono<List<User>> getUsers();
 
+    Mono<User> getUser(Long id);
+
     Mono<List<Client>> getClients();
 }
