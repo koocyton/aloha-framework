@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
@@ -413,18 +414,24 @@ public class Dispatcher {
         return requestParams;
     }
 
-    // 简单的 Post 请求
+    // Post 请求
     private Map<String, String> formParams(HttpServerRequest request, ByteBuf content) {
         Map<String, String> requestParams = new HashMap<>();
         if (content != null) {
             // POST Params
-            FullHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), content);
+            FullHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), content, request.requestHeaders(), EmptyHttpHeaders.INSTANCE);
             HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), dhr);
             List<InterfaceHttpData> postData = postDecoder.getBodyHttpDatas();
             for (InterfaceHttpData data : postData) {
+                // 一般 post 内容
                 if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                     MemoryAttribute attribute = (MemoryAttribute) data;
                     requestParams.put(attribute.getName(), attribute.getValue());
+                }
+                // 上传文件的内容
+                else if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
+                    MemoryFileUpload fileUpload = (MemoryFileUpload) data;
+                    log.info("upload file {}, {}, {}", fileUpload.getContentType(), fileUpload.getHttpDataType(), fileUpload.getFilename());
                 }
             }
         }

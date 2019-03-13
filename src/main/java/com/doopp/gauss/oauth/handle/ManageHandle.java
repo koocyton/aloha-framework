@@ -1,5 +1,6 @@
 package com.doopp.gauss.oauth.handle;
 
+import com.doopp.gauss.common.dao.UserDao;
 import com.doopp.gauss.common.entity.Client;
 import com.doopp.gauss.common.message.response.ListPage;
 import com.doopp.gauss.oauth.service.ManageService;
@@ -25,6 +26,9 @@ public class ManageHandle {
 
     @Inject
     private ManageService manageService;
+
+    @Inject
+    private UserDao userDao;
 
     @GET
     @Path("/authentication")
@@ -56,5 +60,11 @@ public class ManageHandle {
         PageHelper.startPage(page, 30);
         return manageService.getClients()
             .map(list->new ListPage<>(list, Client.class));
+    }
+
+    @POST
+    @Path("/post-test")
+    public Mono<User> postTest() {
+        return Mono.just(userDao.getById(1L));
     }
 }
