@@ -25,6 +25,7 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.multipart.MemoryAttribute;
 import io.netty.handler.codec.http.websocketx.*;
+import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -204,14 +205,18 @@ public class Dispatcher {
 
     private Publisher<Void> websocketPublisher(HttpServerRequest request, HttpServerResponse response) {
         return this.doFilter(request, response, new RequestAttribute())
-            .flatMap(requestAttribute -> {
-                WebSocketServerHandle handleObject = injector.getInstance(GameWsHandle.class);
-                return response
-                    .header("content-type", "text/plain")
-                    .sendWebsocket((in, out) ->
-                        this.websocketPublisher3(in, out, handleObject, requestAttribute)
-                    );
-            });
+                .onErrorResume(throwable -> {
+                    log.info("throwable {}", throwable);
+                    return Mono.just(new RequestAttribute());
+                })
+                .flatMap(requestAttribute -> {
+                    WebSocketServerHandle handleObject = injector.getInstance(GameWsHandle.class);
+                    return response
+                        .header("content-type", "text/plain")
+                        .sendWebsocket((in, out) ->
+                            this.websocketPublisher3(in, out, handleObject, requestAttribute)
+                        );
+                });
     }
 
     private Publisher<Void> websocketPublisher1(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
@@ -264,28 +269,51 @@ public class Dispatcher {
 
     private Publisher<Void> websocketPublisher3(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
         return out
-            .withConnection(c -> {
-                // on connect
-                handleObject.onConnect(c.channel());
-                // get message
-                in.aggregateFrames()
-                    .receiveFrames()
-                    .map(frame -> {
-                        if (frame instanceof TextWebSocketFrame) {
-                            handleObject.onTextMessage((TextWebSocketFrame) frame, c.channel());
-                        } else if (frame instanceof BinaryWebSocketFrame) {
-                            handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
-                        } else if (frame instanceof PingWebSocketFrame) {
-                            handleObject.onPingMessage((PingWebSocketFrame) frame, c.channel());
-                        } else if (frame instanceof PongWebSocketFrame) {
-                            handleObject.onPongMessage((PongWebSocketFrame) frame, c.channel());
-                        } else if (frame instanceof CloseWebSocketFrame) {
-                            handleObject.close(c.channel());
+                .withConnection(conn -> {
+                    // on connect
+                    handleObject.onConnect(conn.channel());
+                    conn.channel().attr(AttributeKey.valueOf("request-attribute")).set(requestAttribute);
+                    conn.onDispose().subscribe(null, null, () -> {
+                            conn.channel().close();
+                            handleObject.close(conn.channel());
+                            // System.out.println("context.onClose() completed");
                         }
-                        return "";
-                    })
-                    .blockLast();
-            });
+                    );
+                    // get message
+                    in.aggregateFrames()
+                            .receiveFrames()
+                            .map(frame -> {
+                                if (frame instanceof TextWebSocketFrame) {
+                                    handleObject.onTextMessage((TextWebSocketFrame) frame, conn.channel());
+                                } else if (frame instanceof BinaryWebSocketFrame) {
+                                    handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, conn.channel());
+                                } else if (frame instanceof PingWebSocketFrame) {
+                                    handleObject.onPingMessage((PingWebSocketFrame) frame, conn.channel());
+                                } else if (frame instanceof PongWebSocketFrame) {
+                                    handleObject.onPongMessage((PongWebSocketFrame) frame, conn.channel());
+                                } else if (frame instanceof CloseWebSocketFrame) {
+                                    handleObject.close(conn.channel());
+                                }
+                                return "";
+                            })
+                            .blockLast();
+                });
+    }
+
+    private Publisher<Void> websocketPublisher4(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
+        return out
+                .withConnection(conn -> {
+                    conn.onDispose().subscribe(
+                            c -> { // no-op
+                            },
+                            t -> {
+                                t.printStackTrace();
+                            },
+                            () -> {
+                                System.out.println("context.onClose() completed");
+                            }
+                    );
+                });
     }
 
     private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, RequestAttribute requestAttribute, ByteBuf content) {

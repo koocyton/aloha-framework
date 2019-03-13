@@ -17,7 +17,7 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
     @Override
     public void onConnect(Channel channel) {
         channelMap.put(channel.id().asLongText(), channel);
-        log.info("{}", channelMap);
+        log.info("{}", channelMap.size());
         // channel.writeAndFlush(new TextWebSocketFrame("connected " + channel.id()));
     }
 
