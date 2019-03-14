@@ -416,7 +416,7 @@ public class Dispatcher {
 
     // Post 请求
     private Map<String, String> formParams(HttpServerRequest request, ByteBuf content) {
-        Map<String, String> requestParams = new HashMap<>();
+        Map<String, Object> requestParams = new HashMap<>();
         if (content != null) {
             // POST Params
             FullHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), content, request.requestHeaders(), EmptyHttpHeaders.INSTANCE);
@@ -431,7 +431,7 @@ public class Dispatcher {
                 // 上传文件的内容
                 else if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
                     MemoryFileUpload fileUpload = (MemoryFileUpload) data;
-                    log.info("upload file {}, {}, {}", fileUpload.getContentType(), fileUpload.getHttpDataType(), fileUpload.getFilename());
+                    requestParams.put(fileUpload.getName(), fileUpload);
                 }
             }
         }
