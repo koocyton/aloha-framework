@@ -9,12 +9,15 @@ import com.doopp.gauss.common.entity.vo.UserVO;
 import com.doopp.gauss.common.message.response.Authentication;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.resource.RequestAttributeParam;
+import com.doopp.gauss.server.resource.UploadFilesParam;
 import com.github.pagehelper.PageHelper;
 import com.google.inject.Inject;
+import io.netty.handler.codec.http.multipart.MemoryFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import javax.ws.rs.*;
+import java.nio.charset.Charset;
 import java.util.List;
 
 @Slf4j
@@ -64,7 +67,7 @@ public class ManageHandle {
 
     @POST
     @Path("/post-test")
-    public Mono<User> postTest() {
+    public Mono<User> postTest(@UploadFilesParam(value = "ff") MemoryFileUpload file) {
         return Mono.just(userDao.getById(1L));
     }
 }

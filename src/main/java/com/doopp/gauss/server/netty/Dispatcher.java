@@ -9,6 +9,7 @@ import com.doopp.gauss.server.handle.StaticHandle;
 import com.doopp.gauss.server.handle.WebSocketServerHandle;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.doopp.gauss.server.resource.RequestAttributeParam;
+import com.doopp.gauss.server.resource.UploadFilesParam;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
@@ -290,8 +291,14 @@ public class Dispatcher {
 
     private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, RequestAttribute requestAttribute, ByteBuf content) {
         ArrayList<Object> objectList = new ArrayList<>();
-        Map<String, String> questParams = queryParams(request);
-        Map<String, String> formParams = formParams(request, content);
+
+        Map<String, String> questParams = new HashMap<>();
+        Map<String, String> formParams = new HashMap<>();
+        Map<String, MemoryFileUpload> fileParams = new HashMap<>();
+
+        this.queryParams(request, questParams);
+        this.formParams(request, content, formParams, fileParams);
+
         for (Parameter parameter : method.getParameters()) {
             Class<?> parameterClass = parameter.getType();
             // RequestAttribute
@@ -305,6 +312,18 @@ public class Dispatcher {
             // response
             else if (parameterClass == HttpServerResponse.class) {
                 objectList.add(response);
+            }
+            // upload file
+            else if (parameter.getAnnotation(UploadFilesParam.class) != null) {
+                String annotationKey = parameter.getAnnotation(UploadFilesParam.class).value();
+                objectList.add(fileParams.get(annotationKey));
+//                String fileTypes = parameter.getAnnotation(UploadFilesParam.class).types();
+//                for(String fileType : fileTypes) {
+//                    if (fileParams.get(annotationKey).getHttpDataType().name().equals(fileType)) {
+//                        objectList.add(fileParams.get(annotationKey));
+//                        break;
+//                    }
+//                }
             }
             // RequestAttribute item
             else if (parameter.getAnnotation(RequestAttributeParam.class) != null) {
@@ -403,20 +422,18 @@ public class Dispatcher {
     }
 
     // Get 请求
-    private Map<String, String> queryParams(HttpServerRequest request) {
-        Map<String, String> requestParams = new HashMap<>();
+    private void queryParams(HttpServerRequest request, Map<String, String> questParams) {
+        // Map<String, String> requestParams = new HashMap<>();
         // Query Params
         QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
         Map<String, List<String>> params = decoder.parameters();
         for (Map.Entry<String, List<String>> next : params.entrySet()) {
-            requestParams.put(next.getKey(), next.getValue().get(0));
+            questParams.put(next.getKey(), next.getValue().get(0));
         }
-        return requestParams;
     }
 
     // Post 请求
-    private Map<String, String> formParams(HttpServerRequest request, ByteBuf content) {
-        Map<String, Object> requestParams = new HashMap<>();
+    private void formParams(HttpServerRequest request, ByteBuf content, Map<String, String> formParams, Map<String, MemoryFileUpload> fileParams) {
         if (content != null) {
             // POST Params
             FullHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), content, request.requestHeaders(), EmptyHttpHeaders.INSTANCE);
@@ -426,15 +443,14 @@ public class Dispatcher {
                 // 一般 post 内容
                 if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                     MemoryAttribute attribute = (MemoryAttribute) data;
-                    requestParams.put(attribute.getName(), attribute.getValue());
+                    formParams.put(attribute.getName(), attribute.getValue());
                 }
                 // 上传文件的内容
                 else if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
                     MemoryFileUpload fileUpload = (MemoryFileUpload) data;
-                    requestParams.put(fileUpload.getName(), fileUpload);
+                    fileParams.put(fileUpload.getName(), fileUpload);
                 }
             }
         }
-        return requestParams;
     }
 }
