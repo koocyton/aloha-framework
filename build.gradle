@@ -6,9 +6,6 @@ apply plugin: 'application'
 
 sourceCompatibility = 1.8
 
-ext {
-}
-
 repositories {
     mavenLocal()
     jcenter()
@@ -39,10 +36,13 @@ dependencies {
     compile 'com.zaxxer:HikariCP:3.3.0'
     compile 'org.mybatis:mybatis:3.5.0'
     compile 'org.mybatis:mybatis-guice:3.10'
-    // compile 'com.github.pagehelper:pagehelper:5.1.8'
+    compile 'com.github.pagehelper:pagehelper:5.1.8'
 
     // Redis
     compile 'redis.clients:jedis:3.0.1'
+
+    // serializable
+    compile 'com.esotericsoftware:kryo:4.0.2'
 
     // async http client
     // compile 'com.ning:async-http-client:1.9.38'
@@ -50,9 +50,12 @@ dependencies {
     // template
     // compile 'org.freemarker:freemarker:2.3.28'
 
+    // file upload
+    // compile 'commons-fileupload:commons-fileupload:1.3.3'
+
     // Util
     compile 'org.mapstruct:mapstruct-jdk8:1.2.0.Final'
-    compileOnly 'org.mapstruct:mapstruct-processor:1.2.0.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.2.0.Final'
     compileOnly 'org.projectlombok:lombok:1.18.6'
     annotationProcessor 'org.projectlombok:lombok:1.18.6'
 
@@ -63,7 +66,6 @@ dependencies {
     // compile 'junit:junit:4.12'
     // compile 'io.projectreactor:reactor-test:3.2.5.RELEASE'
 }
-
 
 tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"

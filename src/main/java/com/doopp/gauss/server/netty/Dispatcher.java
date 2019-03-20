@@ -1,12 +1,15 @@
 package com.doopp.gauss.server.netty;
 
-import com.doopp.gauss.common.defined.CommonError;
-import com.doopp.gauss.common.exception.CommonException;
-import com.doopp.gauss.common.message.CommonResponse;
+import com.doopp.gauss.oauth.defined.CommonError;
+import com.doopp.gauss.oauth.defined.CommonField;
+import com.doopp.gauss.oauth.exception.CommonException;
+import com.doopp.gauss.oauth.message.CommonResponse;
 import com.doopp.gauss.server.filter.iFilter;
 import com.doopp.gauss.server.handle.StaticHandle;
 import com.doopp.gauss.server.handle.WebSocketServerHandle;
 import com.doopp.gauss.server.resource.RequestAttribute;
+import com.doopp.gauss.server.resource.RequestAttributeParam;
+import com.doopp.gauss.server.resource.UploadFilesParam;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
@@ -14,10 +17,13 @@ import com.google.inject.Injector;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
 import io.netty.handler.codec.http.websocketx.*;
+import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
@@ -45,13 +51,11 @@ public class Dispatcher {
 
     private final Set<String> handlePackages = new HashSet<>();
 
-    private final Map<String, Channel> wsChannels = new HashMap<>();
-
     private final Gson gsonCreate = new GsonBuilder()
-			.serializeNulls()
-			.setDateFormat("yyyy-MM-dd HH:mm:ss")
-			.setLongSerializationPolicy(LongSerializationPolicy.STRING)
-			.create();
+            .serializeNulls()
+            .setDateFormat("yyyy-MM-dd HH:mm:ss")
+            .setLongSerializationPolicy(LongSerializationPolicy.STRING)
+            .create();
 
     public void setInjector(Injector injector) {
         this.injector = injector;
@@ -77,7 +81,7 @@ public class Dispatcher {
                     // if websocket
                     if (handleObject instanceof WebSocketServerHandle && pathAnnotation != null) {
                         log.info("    WS " + rootPath + " → " + handleClassName);
-                        routes.ws(rootPath, (in, out) -> websocketPublisher(in, out, (WebSocketServerHandle) handleObject));
+                        routes.get(rootPath, (req, resp) -> websocketPublisher(req, resp, (WebSocketServerHandle) handleObject));
                         continue;
                     }
                     // methods for handle
@@ -90,22 +94,24 @@ public class Dispatcher {
                             // GET
                             if (method.isAnnotationPresent(GET.class)) {
                                 log.info("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.get(requestPath, (req, resp) -> httpGetPublisher(req, resp, method, handleObject));
+                                routes.get(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
+                                routes.options(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // POST
                             else if (method.isAnnotationPresent(POST.class)) {
                                 log.info("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.post(requestPath, (req, resp) -> httpPostPublisher(req, resp, method, handleObject));
+                                routes.post(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
+                                routes.options(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // DELETE
                             else if (method.isAnnotationPresent(DELETE.class)) {
                                 log.info("DELETE " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.delete(requestPath, (req, resp) -> httpGetPublisher(req, resp, method, handleObject));
+                                routes.delete(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // UPDATE
                             else if (method.isAnnotationPresent(PUT.class)) {
                                 log.info("   PUT " + requestPath + " → " + handleClassName + ":" + method.getName());
-                                routes.put(requestPath, (req, resp) -> httpPostPublisher(req, resp, method, handleObject));
+                                routes.put(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                         }
                     }
@@ -117,172 +123,168 @@ public class Dispatcher {
         };
     }
 
-    private Publisher<Void> websocketPublisher(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject) {
-        // with connect
-        return out.withConnection(c -> {
-            // on connect
-            wsChannels.put(in.headers().get("Sec-WebSocket-Key"), c.channel());
-            handleObject.onConnect(c.channel());
-            // get message
-//              in.aggregateFrames()
-//                  .receiveFrames()
-//                  .doOnNext(frame -> {
-//                      if (frame instanceof TextWebSocketFrame) {
-//                          handleObject.onTextMessage((TextWebSocketFrame) frame, c.channel());
-//                      } else if (frame instanceof BinaryWebSocketFrame) {
-//                          handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
-//                      } else if (frame instanceof PingWebSocketFrame) {
-//                          handleObject.onPingMessage((PingWebSocketFrame) frame, c.channel());
-//                      } else if (frame instanceof PongWebSocketFrame) {
-//                          handleObject.onPongMessage((PongWebSocketFrame) frame, c.channel());
-//                      } else if (frame instanceof CloseWebSocketFrame) {
-//                          handleObject.close((CloseWebSocketFrame) frame, c.channel());
-//                      }
-//                   })
-//                   .blockLast();
-        })
-         .options(NettyPipeline.SendOptions::flushOnEach)
-         .then(in.aggregateFrames()
-             .receiveFrames()
-             .doOnEach(webSocketFrameSignal -> {
-                 WebSocketFrame frame = webSocketFrameSignal.get();
-                 String wsKey = in.headers().get("Sec-WebSocket-Key");
-                 if (frame instanceof TextWebSocketFrame) {
-                     handleObject.onTextMessage((TextWebSocketFrame) frame, wsChannels.get(wsKey));
-                 }
-                 else if (frame instanceof BinaryWebSocketFrame) {
-                     handleObject.onBinaryMessage((BinaryWebSocketFrame) frame,  wsChannels.get(wsKey));
-                 }
-                 else if (frame instanceof PingWebSocketFrame) {
-                     handleObject.onPingMessage((PingWebSocketFrame) frame, wsChannels.get(wsKey));
-                 }
-                 else if (frame instanceof PongWebSocketFrame) {
-                     handleObject.onPongMessage((PongWebSocketFrame) frame, wsChannels.get(wsKey));
-                 }
-                 else if (frame instanceof CloseWebSocketFrame) {
-                     log.info("1 channel {} close", wsChannels.get(wsKey).id());
-                     handleObject.close((CloseWebSocketFrame) frame, wsChannels.get(wsKey));
-                     wsChannels.remove(wsKey);
-                 }
-             })
-//             .doOnNext(frame -> {
-//                 String wsKey = in.headers().get("Sec-WebSocket-Key");
-//                 if (frame instanceof TextWebSocketFrame) {
-//                     webSocketServerHandle.onTextMessage((TextWebSocketFrame) frame, wsChannels.get(wsKey));
-//                 }
-//                 else if (frame instanceof BinaryWebSocketFrame) {
-//                     webSocketServerHandle.onBinaryMessage((BinaryWebSocketFrame) frame,  wsChannels.get(wsKey));
-//                 }
-//                 else if (frame instanceof PingWebSocketFrame) {
-//                     webSocketServerHandle.onPingMessage((PingWebSocketFrame) frame, wsChannels.get(wsKey));
-//                 }
-//                 else if (frame instanceof PongWebSocketFrame) {
-//                     webSocketServerHandle.onPongMessage((PongWebSocketFrame) frame, wsChannels.get(wsKey));
-//                 }
-//                 else if (frame instanceof CloseWebSocketFrame) {
-//                     log.info("1 channel {} close", wsChannels.get(wsKey).id());
-//                     webSocketServerHandle.close((CloseWebSocketFrame) frame, wsChannels.get(wsKey));
-//                     wsChannels.remove(wsKey);
-//                 }
-//             })
-//             .doOnError(frameSignal->{
-//                 String wsKey = in.headers().get("Sec-WebSocket-Key");
-//                 log.info("2 channel {} close", wsChannels.get(wsKey).id());
-//                 webSocketServerHandle.close(wsChannels.get(wsKey));
-//                 wsChannels.remove(wsKey);
-//             })
-             .then()
-         );
-
-//         .sendObject(in
-//                 .aggregateFrames()
-//                 .receiveFrames()
-//                 .map(frame -> {
-//                     String wsKey = in.headers().get("Sec-WebSocket-Key");
-//                     if (frame instanceof TextWebSocketFrame) {
-//                         webSocketServerHandle.onTextMessage((TextWebSocketFrame)frame, wsChannels.get(wsKey));
-//                     }
-//                     else if (frame instanceof BinaryWebSocketFrame) {
-//                         webSocketServerHandle.onBinaryMessage(handles.get(handleKey));
-//                     }
-//                     else if (frame instanceof PingWebSocketFrame) {
-//                         webSocketServerHandle.onPingMessage(handles.get(handleKey));
-//                     }
-//                     else if (frame instanceof PongWebSocketFrame) {
-//                         webSocketServerHandle.onPongMessage(handles.get(handleKey));
-//                     }
-//                     else if (frame instanceof CloseWebSocketFrame) {
-//                         webSocketServerHandle.close(handles.get(handleKey));
-//                         handles.remove(handleKey);
-//                     }
-//                     return "";
-//                 })
-//                 .map(TextWebSocketFrame::new)
-//         );
-    }
-
-    private <T> Publisher<Void> httpGetPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
-        return this.httpPublisher(req, resp, method, handleObject, null);
-    }
-
-    private <T> Publisher<Void> httpPostPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject) {
-        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .status(HttpResponseStatus.OK)
-            .sendString(req
-                .receive()
-                .map(byteBuf -> {
-                    CommonResponse<Object> response;
-                    try {
-                        response = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, byteBuf));
-                    } catch (Exception e) {
-                        response = exceptionPublisher(e);
-                    }
-                    return response;
+    private Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, Object handleObject) {
+        return this
+                // 过滤请求
+                .doFilter(req, resp, new RequestAttribute())
+                // 调用路由对应的方法
+                .flatMap(requestAttribute -> this.invokeMethod(req, resp, method, handleObject, requestAttribute))
+                // 错误处理
+                .onErrorResume(throwable -> {
+                    throwable.printStackTrace();
+                    return (throwable instanceof CommonException)
+                            ? Mono.just((CommonException) throwable)
+                            : Mono.just(new CommonException(CommonError.FAIL.code(), throwable.getMessage()));
                 })
-                .map(gsonCreate::toJson)
+                // 打包
+                .flatMap(o -> {
+                    // status
+                    int status = (o instanceof CommonException)
+                            ? ((CommonException) o).getCode()
+                            : HttpResponseStatus.OK.code();
+                    // json
+                    return resp.status(status)
+                            .addHeader(HttpHeaderNames.SERVER, "power by reactor")
+                            .addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON + "; charset=UTF-8")
+                            .sendString(Mono.just(o)
+                                    .map(CommonResponse::new)
+                                    .map(gsonCreate::toJson)
+                            )
+                            .then();
+                });
+    }
+
+    /**
+     * 处理 filter
+     *
+     * @param req              HttpServerRequest
+     * @param resp             HttpServerResponse
+     * @param requestAttribute 当次请求
+     * @return Mono
+     */
+    private Mono<RequestAttribute> doFilter(HttpServerRequest req, HttpServerResponse resp, RequestAttribute requestAttribute) {
+        for (String key : this.filters.keySet()) {
+            if (req.uri().length() >= key.length() && req.uri().substring(0, key.length()).equals(key)) {
+                log.info("request {}", req.uri(), key);
+                return this.filters.get(key).doFilter(req, resp, requestAttribute);
+            }
+        }
+        return Mono.just(requestAttribute);
+    }
+
+    private Mono<Object> invokeMethod(HttpServerRequest req, HttpServerResponse resp, Method method, Object handleObject, RequestAttribute requestAttribute) {
+        if (req.method() == HttpMethod.POST) {
+            return req
+                    .receive()
+                    .aggregate()
+                    .flatMap(byteBuf -> {
+                        try {
+                            return (Mono<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, requestAttribute, byteBuf));
+                        } catch (Exception e) {
+                            return Mono.error(e);
+                        }
+                    });
+        } else {
+            try {
+                return (Mono<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, requestAttribute, null));
+            } catch (Exception e) {
+                return Mono.error(e);
+            }
+        }
+    }
+
+    private Publisher<Void> websocketPublisher(HttpServerRequest request, HttpServerResponse response, WebSocketServerHandle handleObject) {
+        return this.doFilter(request, response, new RequestAttribute())
+                .flatMap(requestAttribute ->
+                        response.header("content-type", "text/plain")
+                                .sendWebsocket((in, out) ->
+                                        this.websocketPublisher2(in, out, handleObject, requestAttribute)
+                                ));
+    }
+
+    private Publisher<Void> websocketPublisher1(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
+        return out.withConnection(conn -> {
+            conn.channel().attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
+            // on connect
+            handleObject.connected(conn.channel());
+            conn.onDispose().subscribe(null, null, () -> {
+                        conn.channel().close();
+                        handleObject.disconnect(conn.channel());
+                    }
             );
+            // get message
+            in.aggregateFrames()
+                    .receiveFrames()
+                    .map(frame -> {
+                        if (frame instanceof TextWebSocketFrame) {
+                            handleObject.onTextMessage((TextWebSocketFrame) frame, conn.channel());
+                        } else if (frame instanceof BinaryWebSocketFrame) {
+                            handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, conn.channel());
+                        } else if (frame instanceof PingWebSocketFrame) {
+                            handleObject.onPingMessage((PingWebSocketFrame) frame, conn.channel());
+                        } else if (frame instanceof PongWebSocketFrame) {
+                            handleObject.onPongMessage((PongWebSocketFrame) frame, conn.channel());
+                        } else if (frame instanceof CloseWebSocketFrame) {
+                            conn.channel().close();
+                            handleObject.disconnect(conn.channel());
+                        }
+                        return "";
+                    })
+                    .blockLast();
+        });
     }
 
-    private <T> Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, T handleObject, ByteBuf content) {
-        CommonResponse<Object> response;
-        int status = HttpResponseStatus.OK.code();
-        try {
-            response = (CommonResponse<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, content));
-        } catch (Exception e) {
-            response = exceptionPublisher(e);
-            status = response.getErr_code();
-        }
-        return resp.addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .status(status)
-            .sendString(Mono.just(response).map(gsonCreate::toJson));
+
+    private Publisher<Void> websocketPublisher2(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
+        return out
+                .withConnection(c -> {
+                    Channel channel = c.channel();
+                    channel.attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
+                    handleObject.connected(channel);
+                    requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
+                    in.aggregateFrames().receiveFrames().subscribe(frame -> {
+                        if (frame instanceof TextWebSocketFrame) {
+                            handleObject.onTextMessage((TextWebSocketFrame) frame, channel);
+                        } else if (frame instanceof BinaryWebSocketFrame) {
+                            handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, channel);
+                        } else if (frame instanceof PingWebSocketFrame) {
+                            handleObject.onPingMessage((PingWebSocketFrame) frame, channel);
+                        } else if (frame instanceof PongWebSocketFrame) {
+                            handleObject.onPongMessage((PongWebSocketFrame) frame, channel);
+                        } else if (frame instanceof CloseWebSocketFrame) {
+                            handleObject.disconnect(channel);
+                        }
+                    });
+                    c.onDispose().subscribe(null, null, () -> {
+                        channel.close();
+                        handleObject.disconnect(channel);
+                    });
+                })
+                // options
+                .options(NettyPipeline.SendOptions::flushOnEach)
+                // send string
+                .sendString(
+                        handleObject.receiveTextMessage(
+                                requestAttribute.getAttribute(CommonField.CURRENT_CHANNEL, Channel.class)
+                        )
+                );
     }
 
-    private CommonResponse<Object> exceptionPublisher(Exception e) {
-        // default error info
-        int errorCode = CommonError.FAIL.code();
-        String errorMessage = e.getMessage();
-        // if is CommonException
-        if (e.getCause()!=null && e.getCause().getClass()==CommonException.class) {
-            CommonException ce = (CommonException) e.getCause();
-            errorCode = ce.getCode();
-            errorMessage = ce.getMessage();
-        }
-        // return;
-        CommonResponse<Object> responseObject = new CommonResponse<>(null);
-        responseObject.setErr_code(errorCode);
-        responseObject.setErr_msg(errorMessage);
-        return responseObject;
-    }
-
-    private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, ByteBuf content) {
+    private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, RequestAttribute requestAttribute, ByteBuf content) {
         ArrayList<Object> objectList = new ArrayList<>();
-        Map<String, String> questParams = queryParams(request);
-        Map<String, String> formParams = formParams(request, content);
+
+        Map<String, String> questParams = new HashMap<>();
+        Map<String, String> formParams = new HashMap<>();
+        Map<String, MemoryFileUpload> fileParams = new HashMap<>();
+
+        this.queryParams(request, questParams);
+        this.formParams(request, content, formParams, fileParams);
+
         for (Parameter parameter : method.getParameters()) {
             Class<?> parameterClass = parameter.getType();
             // RequestAttribute
             if (parameterClass == RequestAttribute.class) {
-                objectList.add(new RequestAttribute());
+                objectList.add(requestAttribute);
             }
             // request
             else if (parameterClass == HttpServerRequest.class) {
@@ -291,6 +293,16 @@ public class Dispatcher {
             // response
             else if (parameterClass == HttpServerResponse.class) {
                 objectList.add(response);
+            }
+            // upload file
+            else if (parameter.getAnnotation(UploadFilesParam.class) != null) {
+                String annotationKey = parameter.getAnnotation(UploadFilesParam.class).value();
+                objectList.add(fileParams.get(annotationKey));
+            }
+            // RequestAttribute item
+            else if (parameter.getAnnotation(RequestAttributeParam.class) != null) {
+                String annotationKey = parameter.getAnnotation(RequestAttributeParam.class).value();
+                objectList.add(requestAttribute.getAttribute(annotationKey, parameterClass));
             }
             // CookieParam
             else if (parameter.getAnnotation(CookieParam.class) != null) {
@@ -355,7 +367,7 @@ public class Dispatcher {
             String resourcePath = this.getClass().getResource(path).getPath();
             // if in jar
             if (resourcePath.contains(".jar")) {
-                JarFile jarFile = new JarFile(resourcePath.substring(6, resourcePath.lastIndexOf(".jar!") + 4));
+                JarFile jarFile = new JarFile(resourcePath.substring(5, resourcePath.lastIndexOf(".jar!") + 4));
                 Enumeration<JarEntry> entrys = jarFile.entries();
                 while (entrys.hasMoreElements()) {
                     JarEntry jar = entrys.nextElement();
@@ -384,32 +396,35 @@ public class Dispatcher {
     }
 
     // Get 请求
-    private Map<String, String> queryParams(HttpServerRequest request) {
-        Map<String, String> requestParams = new HashMap<>();
+    private void queryParams(HttpServerRequest request, Map<String, String> questParams) {
+        // Map<String, String> requestParams = new HashMap<>();
         // Query Params
         QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
         Map<String, List<String>> params = decoder.parameters();
         for (Map.Entry<String, List<String>> next : params.entrySet()) {
-            requestParams.put(next.getKey(), next.getValue().get(0));
+            questParams.put(next.getKey(), next.getValue().get(0));
         }
-        return requestParams;
     }
 
-    // 简单的 Post 请求
-    private Map<String, String> formParams(HttpServerRequest request, ByteBuf content) {
-        Map<String, String> requestParams = new HashMap<>();
+    // Post 请求
+    private void formParams(HttpServerRequest request, ByteBuf content, Map<String, String> formParams, Map<String, MemoryFileUpload> fileParams) {
         if (content != null) {
             // POST Params
-            FullHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), content);
+            FullHttpRequest dhr = new DefaultFullHttpRequest(request.version(), request.method(), request.uri(), content, request.requestHeaders(), EmptyHttpHeaders.INSTANCE);
             HttpPostRequestDecoder postDecoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), dhr);
             List<InterfaceHttpData> postData = postDecoder.getBodyHttpDatas();
             for (InterfaceHttpData data : postData) {
+                // 一般 post 内容
                 if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                     MemoryAttribute attribute = (MemoryAttribute) data;
-                    requestParams.put(attribute.getName(), attribute.getValue());
+                    formParams.put(attribute.getName(), attribute.getValue());
+                }
+                // 上传文件的内容
+                else if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) {
+                    MemoryFileUpload fileUpload = (MemoryFileUpload) data;
+                    fileParams.put(fileUpload.getName(), fileUpload);
                 }
             }
         }
-        return requestParams;
     }
 }

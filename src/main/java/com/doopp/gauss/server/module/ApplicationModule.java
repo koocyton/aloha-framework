@@ -1,34 +1,24 @@
 package com.doopp.gauss.server.module;
 
-import com.doopp.gauss.admin.handle.LoginHandle;
-import com.doopp.gauss.admin.handle.ManageHandle;
-import com.doopp.gauss.admin.service.ManagerService;
-import com.doopp.gauss.admin.service.impl.ManagerServiceImpl;
-import com.doopp.gauss.server.resource.RequestAttribute;
-import com.doopp.gauss.api.service.OAuthService;
-import com.doopp.gauss.api.service.impl.OAuthServiceImpl;
+import com.doopp.gauss.oauth.service.ManageService;
+import com.doopp.gauss.oauth.service.OAuthService;
+import com.doopp.gauss.oauth.service.impl.ManageServiceImpl;
+import com.doopp.gauss.oauth.service.impl.OAuthServiceImpl;
 import com.doopp.gauss.server.application.ApplicationProperties;
-import com.doopp.gauss.api.handle.OAuthHandle;
-import com.doopp.gauss.server.util.IdWorker;
+import com.doopp.gauss.oauth.utils.HttpClientUtil;
+import com.doopp.gauss.oauth.utils.IdWorker;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.*;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 
 public class ApplicationModule extends AbstractModule {
 
 	@Override
 	public void configure() {
-		bind(OAuthHandle.class).in(Scopes.SINGLETON);
-		bind(LoginHandle.class).in(Scopes.SINGLETON);
-		bind(ManageHandle.class).in(Scopes.SINGLETON);
-
 		bind(OAuthService.class).to(OAuthServiceImpl.class).in(Scopes.SINGLETON);
-		bind(ManagerService.class).to(ManagerServiceImpl.class).in(Scopes.SINGLETON);
-
-		bind(RequestAttribute.class).in(Scopes.NO_SCOPE);
+		bind(ManageService.class).to(ManageServiceImpl.class).in(Scopes.SINGLETON);
+		bind(HttpClientUtil.class).in(Scopes.SINGLETON);
 	}
 
 	@Singleton
@@ -41,11 +31,6 @@ public class ApplicationModule extends AbstractModule {
 	@Provides
 	public ApplicationProperties applicationProperties() {
 		return new ApplicationProperties();
-	}
-
-	@Provides
-	public EventLoopGroup eventLoopGroup() {
-		return new NioEventLoopGroup();
 	}
 
 	@Singleton

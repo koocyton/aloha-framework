@@ -5,6 +5,7 @@ import com.doopp.gauss.server.redis.CustomShadedJedis;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisShardInfo;
 import redis.clients.jedis.ShardedJedisPool;
@@ -20,14 +21,23 @@ public class RedisModule extends AbstractModule {
 
     @Singleton
     @Provides
+    @Named("userSessionRedis")
     public CustomShadedJedis userSessionRedis() {
         ApplicationProperties properties = new ApplicationProperties();
         String s1 = properties.s("redis.session.s1");
+        ShardedJedisPool shardedJedisPool = this.shardedJedisPool(this.jedisPoolConfig(properties), s1);
+        return new CustomShadedJedis(shardedJedisPool);
+    }
+
+
+    @Singleton
+    @Provides
+    @Named("managerSessionRedis")
+    public CustomShadedJedis managerSessionRedis() {
+        ApplicationProperties properties = new ApplicationProperties();
         String s2 = properties.s("redis.session.s2");
-        ShardedJedisPool shardedJedisPool = this.shardedJedisPool(this.jedisPoolConfig(properties), s1, s2);
-        CustomShadedJedis customShadedJedis = new CustomShadedJedis();
-        customShadedJedis.setShardedJedisPool(shardedJedisPool);
-        return customShadedJedis;
+        ShardedJedisPool shardedJedisPool = this.shardedJedisPool(this.jedisPoolConfig(properties), s2);
+        return new CustomShadedJedis(shardedJedisPool);
     }
 
     private JedisPoolConfig jedisPoolConfig(ApplicationProperties properties) {

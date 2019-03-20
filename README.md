@@ -5,10 +5,10 @@ Reactor + Netty + Guice + Mybatis + Jedis(Redisson) + Gson(Grpc) + Websocket
 ``` html
 Reactor-netty
 Guice ( Ioc AOP )
-Netty ( Server )
 MyBatis ( Database )
 HikariCP
 Gson ( json 序列化 )
+kryo (序列化)
 slf4j ( 日志 )
 ```
 
@@ -27,6 +27,7 @@ HttpServerResponse reactor-netty 的 response
 @PathParam 获取 url 路径解析
 @FormParam 获取表单
 @BeanParam 将 request json body 转对象 
+@FileParam 上传的文件
 ```
 
 @POST ， @GET ， @PATH 例子
@@ -61,36 +62,10 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
     }
 
     @Override
-    public void close(Channel channel) {
+    public void disconnect(Channel channel) {
         // 关闭连接
         super.close(channel);
     }
 }
 
-```
-
-websocket 解析方式有几个，下面这个可能也是可行的。而且结构更清晰，只是后面哪个 blockLast 感觉好怪
-实际测试，并没有阻塞，线程也相对稳定
-```java
-(in, out) -> out.withConnection(c -> {
-            // on connect
-            handleObject.onConnect(c.channel());
-            // get message
-              in.aggregateFrames()
-                  .receiveFrames()
-                  .doOnNext(frame -> {
-                      if (frame instanceof TextWebSocketFrame) {
-                          handleObject.onTextMessage((TextWebSocketFrame) frame, c.channel());
-                      } else if (frame instanceof BinaryWebSocketFrame) {
-                          handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, c.channel());
-                      } else if (frame instanceof PingWebSocketFrame) {
-                          handleObject.onPingMessage((PingWebSocketFrame) frame, c.channel());
-                      } else if (frame instanceof PongWebSocketFrame) {
-                          handleObject.onPongMessage((PongWebSocketFrame) frame, c.channel());
-                      } else if (frame instanceof CloseWebSocketFrame) {
-                          handleObject.close((CloseWebSocketFrame) frame, c.channel());
-                      }
-                   })
-                   .blockLast();
-        }).then();
 ```

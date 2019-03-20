@@ -2,12 +2,19 @@ package com.doopp.gauss.server.handle;
 
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.*;
+import reactor.core.publisher.Flux;
 
-public interface WebSocketServerHandle<T> {
+public interface WebSocketServerHandle {
 
-    void onConnect(Channel channel);
+    void connected(Channel channel);
 
-    void onMessage(WebSocketFrame frame, Channel channel);
+    void connected(Channel channel, String channelKey);
+
+    void sendTextMessage(String text, Channel channel);
+
+    void sendTextMessage(String text, String channelKey);
+
+    Flux<String> receiveTextMessage(Channel channel);
 
     void onTextMessage(TextWebSocketFrame frame, Channel channel);
 
@@ -17,7 +24,5 @@ public interface WebSocketServerHandle<T> {
 
     void onPongMessage(PongWebSocketFrame frame, Channel channel);
 
-    void close(CloseWebSocketFrame frame, Channel channel);
-
-    void close(Channel channel);
+    void disconnect(Channel channel);
 }
