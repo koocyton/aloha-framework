@@ -206,10 +206,10 @@ public class Dispatcher {
         return out.withConnection(conn -> {
             conn.channel().attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
             // on connect
-            handleObject.onConnect(conn.channel());
+            handleObject.connected(conn.channel());
             conn.onDispose().subscribe(null, null, () -> {
                         conn.channel().close();
-                        handleObject.disconnect(conn.channel());
+                        handleObject.disconnect(conn.channel().id().asLongText());
                     }
             );
             // get message
@@ -226,7 +226,7 @@ public class Dispatcher {
                             handleObject.onPongMessage((PongWebSocketFrame) frame, conn.channel());
                         } else if (frame instanceof CloseWebSocketFrame) {
                             conn.channel().close();
-                            handleObject.disconnect(conn.channel());
+                            handleObject.disconnect(conn.channel().id().asLongText());
                         }
                         return "";
                     })
@@ -240,7 +240,7 @@ public class Dispatcher {
                 .withConnection(c -> {
                     Channel channel = c.channel();
                     channel.attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
-                    handleObject.onConnect(channel);
+                    handleObject.connected(channel);
                     requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
                     in.aggregateFrames().receiveFrames().subscribe(frame -> {
                         if (frame instanceof TextWebSocketFrame) {
@@ -252,12 +252,12 @@ public class Dispatcher {
                         } else if (frame instanceof PongWebSocketFrame) {
                             handleObject.onPongMessage((PongWebSocketFrame) frame, channel);
                         } else if (frame instanceof CloseWebSocketFrame) {
-                            handleObject.disconnect(channel);
+                            handleObject.disconnect(channel.id().asLongText());
                         }
                     });
                     c.onDispose().subscribe(null, null, () -> {
                         channel.close();
-                        handleObject.disconnect(channel);
+                        handleObject.disconnect(channel.id().asLongText());
                     });
                 })
                 // options

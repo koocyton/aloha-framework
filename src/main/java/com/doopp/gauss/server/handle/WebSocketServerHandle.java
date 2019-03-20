@@ -6,9 +6,11 @@ import reactor.core.publisher.Flux;
 
 public interface WebSocketServerHandle {
 
-    void onConnect(Channel channel);
+    void connected(Channel channel);
 
-    void onTextMessage(String text, Channel channel);
+    void connected(Channel channel, String channelKey);
+
+    void sendTextMessage(String text, Channel channel);
 
     Flux<String> receiveTextMessage(Channel channel);
 
