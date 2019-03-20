@@ -25,26 +25,31 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
 
     @Override
     public void connected(Channel channel) {
-        String channelKey = channel.id().asLongText();
+        String channelKey = channel.id().asShortText();
         this.connected(channel, channelKey);
     }
 
     @Override
-    public void connected(Channel channel, String channelKey) {
+    public synchronized void connected(Channel channel, String channelKey) {
+        this.disconnect(channelMap.get(channelKey));
         channel.attr(CHANNEL_UNIQUE_KEY).set(channelKey);
-        this.disconnect(channelKey);
         channelMap.put(channelKey, channel);
         queueMessageMap.put(channelKey, ReplayProcessor.create());
-        log.info("Online number : {}", channelMap.size());
+        log.info("User join : {}", channelMap.size());
         // channel.writeAndFlush(new TextWebSocketFrame("connected " + channel.id()));
     }
 
     @Override
     public void sendTextMessage(String text, Channel channel) {
+        this.sendTextMessage(text, channel.attr(CHANNEL_UNIQUE_KEY).get());
+    }
+
+    @Override
+    public void sendTextMessage(String text, String channelKey) {
         // channel.writeAndFlush(new TextWebSocketFrame(text));
         Flux.just(text).map(Object::toString)
                 .subscribe(s->
-                    queueMessageMap.get(channel.attr(CHANNEL_UNIQUE_KEY).get()).onNext(s)
+                        queueMessageMap.get(channelKey).onNext(s)
                 );
     }
 
@@ -75,16 +80,18 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
 
     @Override
     public void disconnect(Channel channel) {
-        if (channel!=null && channel.isActive()) {
-            channel.disconnect();
-            channel.close();
-        }
         try {
-            channelMap.remove(channel.attr(CHANNEL_UNIQUE_KEY).get());
-            queueMessageMap.remove(channel.attr(CHANNEL_UNIQUE_KEY).get());
+            String channelKey = channel.attr(CHANNEL_UNIQUE_KEY).get();
+            channelMap.remove(channelKey);
+            queueMessageMap.remove(channelKey);
+            if (channel.isActive()) {
+                channel.disconnect();
+                channel.close();
+            }
         }
         catch(Exception e) {
             // e.printStackTrace();
         }
+        log.info("User leave : {}", channelMap.size());
     }
 }

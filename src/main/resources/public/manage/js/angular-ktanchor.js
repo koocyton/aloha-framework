@@ -87,8 +87,9 @@ angular.module('ngChatApp', ['ui.bootstrap', 'ngCookies'])
                         expireDate.setDate(expireDate.getDate() + loginResponse.expire);
                         $cookies.put("se_id", loginResponse.token,{'expire': expireDate});
                         let ws = new WebSocketService("/manage/chat/ws");
+                        let randomMessage = "你好 " + Math.floor(Math.random()*100000);
                         setInterval(function(){
-                            ws.send("你好");
+                            ws.send(randomMessage);
                         }, 1000)
                     }
                 },

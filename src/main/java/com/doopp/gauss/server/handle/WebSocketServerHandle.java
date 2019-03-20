@@ -12,6 +12,8 @@ public interface WebSocketServerHandle {
 
     void sendTextMessage(String text, Channel channel);
 
+    void sendTextMessage(String text, String channelKey);
+
     Flux<String> receiveTextMessage(Channel channel);
 
     void onTextMessage(TextWebSocketFrame frame, Channel channel);

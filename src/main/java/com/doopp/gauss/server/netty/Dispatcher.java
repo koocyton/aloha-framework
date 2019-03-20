@@ -209,7 +209,7 @@ public class Dispatcher {
             handleObject.connected(conn.channel());
             conn.onDispose().subscribe(null, null, () -> {
                         conn.channel().close();
-                        handleObject.disconnect(conn.channel().id().asLongText());
+                        handleObject.disconnect(conn.channel());
                     }
             );
             // get message
@@ -226,7 +226,7 @@ public class Dispatcher {
                             handleObject.onPongMessage((PongWebSocketFrame) frame, conn.channel());
                         } else if (frame instanceof CloseWebSocketFrame) {
                             conn.channel().close();
-                            handleObject.disconnect(conn.channel().id().asLongText());
+                            handleObject.disconnect(conn.channel());
                         }
                         return "";
                     })
@@ -252,12 +252,12 @@ public class Dispatcher {
                         } else if (frame instanceof PongWebSocketFrame) {
                             handleObject.onPongMessage((PongWebSocketFrame) frame, channel);
                         } else if (frame instanceof CloseWebSocketFrame) {
-                            handleObject.disconnect(channel.id().asLongText());
+                            handleObject.disconnect(channel);
                         }
                     });
                     c.onDispose().subscribe(null, null, () -> {
                         channel.close();
-                        handleObject.disconnect(channel.id().asLongText());
+                        handleObject.disconnect(channel);
                     });
                 })
                 // options
