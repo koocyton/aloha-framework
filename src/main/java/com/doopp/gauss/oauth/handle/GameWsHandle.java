@@ -26,6 +26,11 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
     @Override
     public Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel) {
         return httpClientUtil.get("https://www.doopp.com", new HashMap<>())
+                .retry(5)
+                .onErrorResume(throwable -> {
+                    // throwable.printStackTrace();
+                    return null;
+                })
                 .map(byteBuf -> {
                     String resp = byteBuf.toString(Charset.forName("UTF-8"));
                     sendTextMessage(resp, channel);
