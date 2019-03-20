@@ -20,10 +20,8 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
 import io.netty.handler.codec.http.websocketx.*;
-import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
@@ -198,74 +196,55 @@ public class Dispatcher {
                 .flatMap(requestAttribute ->
                         response.header("content-type", "text/plain")
                                 .sendWebsocket((in, out) ->
-                                        this.websocketPublisher2(in, out, handleObject, requestAttribute)
+                                        this.ws(in, out, handleObject, requestAttribute)
                                 ));
     }
 
-    private Publisher<Void> websocketPublisher1(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
-        return out.withConnection(conn -> {
-            conn.channel().attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
-            // on connect
-            handleObject.connected(conn.channel());
-            conn.onDispose().subscribe(null, null, () -> {
-                        conn.channel().close();
-                        handleObject.disconnect(conn.channel());
-                    }
-            );
-            // get message
-            in.aggregateFrames()
-                    .receiveFrames()
-                    .map(frame -> {
-                        if (frame instanceof TextWebSocketFrame) {
-                            handleObject.onTextMessage((TextWebSocketFrame) frame, conn.channel());
-                        } else if (frame instanceof BinaryWebSocketFrame) {
-                            handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, conn.channel());
-                        } else if (frame instanceof PingWebSocketFrame) {
-                            handleObject.onPingMessage((PingWebSocketFrame) frame, conn.channel());
-                        } else if (frame instanceof PongWebSocketFrame) {
-                            handleObject.onPongMessage((PongWebSocketFrame) frame, conn.channel());
-                        } else if (frame instanceof CloseWebSocketFrame) {
-                            conn.channel().close();
-                            handleObject.disconnect(conn.channel());
-                        }
-                        return "";
-                    })
-                    .blockLast();
-        });
-    }
-
-
-    private Publisher<Void> websocketPublisher2(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
-        return out
-                .withConnection(c -> {
+    private Publisher<Void> ws(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
+        return out.withConnection(c -> {
+                    // channel
                     Channel channel = c.channel();
+                    // on disconnect
+                    c.onDispose().subscribe(null, null, () -> {
+                        handleObject.disconnect(channel);
+                    });
+                    // set requestAttribute to channel
                     channel.attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
-                    handleObject.connected(channel);
+                    // set channel to requestAttribute
                     requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
+                    // on connect
+                    handleObject.connected(channel);
+                    // on receive
                     in.aggregateFrames().receiveFrames().flatMap(frame -> {
+                        // text frame
                         if (frame instanceof TextWebSocketFrame) {
                             return handleObject.onTextMessage((TextWebSocketFrame) frame, channel);
-                        } else if (frame instanceof BinaryWebSocketFrame) {
+                        }
+                        // binary frame
+                        else if (frame instanceof BinaryWebSocketFrame) {
                             handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, channel);
-                        } else if (frame instanceof PingWebSocketFrame) {
+                        }
+                        // ping frame
+                        else if (frame instanceof PingWebSocketFrame) {
                             handleObject.onPingMessage((PingWebSocketFrame) frame, channel);
-                        } else if (frame instanceof PongWebSocketFrame) {
+                        }
+                        // pong frame
+                        else if (frame instanceof PongWebSocketFrame) {
                             handleObject.onPongMessage((PongWebSocketFrame) frame, channel);
-                        } else if (frame instanceof CloseWebSocketFrame) {
+                        }
+                        // close ?
+                        else if (frame instanceof CloseWebSocketFrame) {
                             handleObject.disconnect(channel);
                         }
                         return Mono.empty();
-                    }).subscribe();
-
-                    c.onDispose().subscribe(null, null, () -> {
-                        channel.close();
-                        handleObject.disconnect(channel);
-                    });
+                    })
+                    .subscribe();
                 })
                 // options
                 .options(NettyPipeline.SendOptions::flushOnEach)
                 // send string
                 .sendString(
+                        // on send message
                         handleObject.receiveTextMessage(
                                 requestAttribute.getAttribute(CommonField.CURRENT_CHANNEL, Channel.class)
                         )
@@ -386,6 +365,9 @@ public class Dispatcher {
             else {
                 File dir = new File(resourcePath);
                 File[] files = dir.listFiles();
+                if (files==null) {
+                    continue;
+                }
                 for (File file : files) {
                     String name = file.getName();
                     int endIndex = name.lastIndexOf(".class");
