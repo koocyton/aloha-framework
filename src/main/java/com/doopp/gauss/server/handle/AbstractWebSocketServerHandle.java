@@ -7,6 +7,7 @@ import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxProcessor;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 
 import java.util.HashMap;
@@ -59,8 +60,11 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
     }
 
     @Override
-    public void onTextMessage(TextWebSocketFrame frame, Channel channel) {
-        this.sendTextMessage(frame.text(), channel);
+    public Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel) {
+        return Mono.just(frame.text()).map(s->{
+            this.sendTextMessage(frame.text(), channel);
+            return "";
+        });
     }
 
     @Override

@@ -242,9 +242,9 @@ public class Dispatcher {
                     channel.attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
                     handleObject.connected(channel);
                     requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
-                    in.aggregateFrames().receiveFrames().subscribe(frame -> {
+                    in.aggregateFrames().receiveFrames().flatMap(frame -> {
                         if (frame instanceof TextWebSocketFrame) {
-                            handleObject.onTextMessage((TextWebSocketFrame) frame, channel);
+                            return handleObject.onTextMessage((TextWebSocketFrame) frame, channel);
                         } else if (frame instanceof BinaryWebSocketFrame) {
                             handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, channel);
                         } else if (frame instanceof PingWebSocketFrame) {
@@ -254,7 +254,9 @@ public class Dispatcher {
                         } else if (frame instanceof CloseWebSocketFrame) {
                             handleObject.disconnect(channel);
                         }
-                    });
+                        return Mono.empty();
+                    }).subscribe();
+
                     c.onDispose().subscribe(null, null, () -> {
                         channel.close();
                         handleObject.disconnect(channel);

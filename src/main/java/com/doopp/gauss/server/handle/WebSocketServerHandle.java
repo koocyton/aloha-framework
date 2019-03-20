@@ -3,6 +3,7 @@ package com.doopp.gauss.server.handle;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface WebSocketServerHandle {
 
@@ -16,7 +17,7 @@ public interface WebSocketServerHandle {
 
     Flux<String> receiveTextMessage(Channel channel);
 
-    void onTextMessage(TextWebSocketFrame frame, Channel channel);
+    Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel);
 
     void onBinaryMessage(BinaryWebSocketFrame frame, Channel channel);
 
