@@ -1,9 +1,9 @@
 package com.doopp.gauss.server.filter;
 
 import com.doopp.gauss.oauth.service.OAuthService;
-import com.doopp.gauss.common.defined.CommonError;
-import com.doopp.gauss.common.entity.User;
-import com.doopp.gauss.common.exception.CommonException;
+import com.doopp.gauss.oauth.defined.CommonError;
+import com.doopp.gauss.oauth.entity.User;
+import com.doopp.gauss.oauth.exception.CommonException;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.google.inject.Injector;
 import lombok.extern.slf4j.Slf4j;

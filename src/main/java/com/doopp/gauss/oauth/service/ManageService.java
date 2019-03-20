@@ -1,8 +1,8 @@
 package com.doopp.gauss.oauth.service;
 
-import com.doopp.gauss.common.entity.Client;
-import com.doopp.gauss.common.entity.User;
-import com.doopp.gauss.common.entity.vo.UserVO;
+import com.doopp.gauss.oauth.entity.Client;
+import com.doopp.gauss.oauth.entity.User;
+import com.doopp.gauss.oauth.entity.vo.UserVO;
 import reactor.core.publisher.Mono;
 
 import java.util.List;

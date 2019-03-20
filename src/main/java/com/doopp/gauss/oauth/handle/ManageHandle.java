@@ -1,24 +1,19 @@
 package com.doopp.gauss.oauth.handle;
 
-import com.doopp.gauss.common.dao.UserDao;
-import com.doopp.gauss.common.entity.Client;
-import com.doopp.gauss.common.message.response.ListPage;
+import com.doopp.gauss.oauth.entity.Client;
+import com.doopp.gauss.oauth.message.response.ListPage;
 import com.doopp.gauss.oauth.service.ManageService;
-import com.doopp.gauss.common.entity.User;
-import com.doopp.gauss.common.entity.vo.UserVO;
-import com.doopp.gauss.common.message.response.Authentication;
+import com.doopp.gauss.oauth.entity.User;
+import com.doopp.gauss.oauth.entity.vo.UserVO;
+import com.doopp.gauss.oauth.message.response.Authentication;
 import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.resource.RequestAttributeParam;
-import com.doopp.gauss.server.resource.UploadFilesParam;
 import com.github.pagehelper.PageHelper;
 import com.google.inject.Inject;
-import io.netty.handler.codec.http.multipart.MemoryFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import javax.ws.rs.*;
-import java.nio.charset.Charset;
-import java.util.List;
 
 @Slf4j
 @Path("/manage/api")
@@ -29,9 +24,6 @@ public class ManageHandle {
 
     @Inject
     private ManageService manageService;
-
-    @Inject
-    private UserDao userDao;
 
     @GET
     @Path("/authentication")
@@ -63,11 +55,5 @@ public class ManageHandle {
         PageHelper.startPage(page, 30);
         return manageService.getClients()
             .map(list->new ListPage<>(list, Client.class));
-    }
-
-    @POST
-    @Path("/post-test")
-    public Mono<User> postTest(@UploadFilesParam(value = "ff") MemoryFileUpload file) {
-        return Mono.just(userDao.getById(1L));
     }
 }

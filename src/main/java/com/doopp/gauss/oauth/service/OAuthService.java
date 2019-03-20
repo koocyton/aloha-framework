@@ -1,10 +1,10 @@
 package com.doopp.gauss.oauth.service;
 
-import com.doopp.gauss.common.entity.User;
-import com.doopp.gauss.common.exception.CommonException;
-import com.doopp.gauss.common.message.OAuthRequest;
-import com.doopp.gauss.common.message.request.LoginRequest;
-import com.doopp.gauss.common.message.request.RegisterRequest;
+import com.doopp.gauss.oauth.entity.User;
+import com.doopp.gauss.oauth.exception.CommonException;
+import com.doopp.gauss.oauth.message.OAuthRequest;
+import com.doopp.gauss.oauth.message.request.LoginRequest;
+import com.doopp.gauss.oauth.message.request.RegisterRequest;
 import reactor.core.publisher.Mono;
 
 public interface OAuthService {

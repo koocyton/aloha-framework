@@ -1,30 +1,24 @@
 package com.doopp.gauss.server.module;
 
-import com.doopp.gauss.game.handle.GameWsHandle;
 import com.doopp.gauss.oauth.service.ManageService;
 import com.doopp.gauss.oauth.service.OAuthService;
 import com.doopp.gauss.oauth.service.impl.ManageServiceImpl;
 import com.doopp.gauss.oauth.service.impl.OAuthServiceImpl;
 import com.doopp.gauss.server.application.ApplicationProperties;
-import com.doopp.gauss.oauth.handle.OAuthHandle;
-import com.doopp.gauss.server.util.HttpClientUtil;
-import com.doopp.gauss.server.util.IdWorker;
+import com.doopp.gauss.oauth.utils.HttpClientUtil;
+import com.doopp.gauss.oauth.utils.IdWorker;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.*;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 
 public class ApplicationModule extends AbstractModule {
 
 	@Override
 	public void configure() {
-		bind(OAuthHandle.class).in(Scopes.SINGLETON);
 		bind(OAuthService.class).to(OAuthServiceImpl.class).in(Scopes.SINGLETON);
 		bind(ManageService.class).to(ManageServiceImpl.class).in(Scopes.SINGLETON);
 		bind(HttpClientUtil.class).in(Scopes.SINGLETON);
-		bind(GameWsHandle.class).in(Scopes.SINGLETON);
 	}
 
 	@Singleton
@@ -37,11 +31,6 @@ public class ApplicationModule extends AbstractModule {
 	@Provides
 	public ApplicationProperties applicationProperties() {
 		return new ApplicationProperties();
-	}
-
-	@Provides
-	public EventLoopGroup eventLoopGroup() {
-		return new NioEventLoopGroup();
 	}
 
 	@Singleton

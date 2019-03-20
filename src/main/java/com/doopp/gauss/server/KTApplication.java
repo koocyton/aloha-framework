@@ -36,7 +36,7 @@ public class KTApplication {
 
         Dispatcher dispatcher = new Dispatcher();
         dispatcher.setInjector(injector);
-        dispatcher.setHandlePackages("com.doopp.gauss.oauth.handle", "com.doopp.gauss.game.handle");
+        dispatcher.setHandlePackages("com.doopp.gauss.oauth.handle");
         dispatcher.addFilter("/oauth", new OAuthFilter(injector));
         dispatcher.addFilter("/manage", new ManageFilter(injector));
 

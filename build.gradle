@@ -41,6 +41,9 @@ dependencies {
     // Redis
     compile 'redis.clients:jedis:3.0.1'
 
+    // serializable
+    compile 'com.esotericsoftware:kryo:4.0.2'
+
     // async http client
     // compile 'com.ning:async-http-client:1.9.38'
 

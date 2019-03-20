@@ -25,7 +25,7 @@ public class CustomMyBatisModule extends MyBatisModule {
         bindDataSourceProviderType(HikariDataSourceProvider.class);
         // bindDataSourceProviderType(DruidDataSourceProvider.class);
         bindTransactionFactoryType(JdbcTransactionFactory.class);
-        addMapperClasses("com.doopp.gauss.common.dao");
+        addMapperClasses("com.doopp.gauss.oauth.dao");
         addInterceptorClass(PageInterceptor.class);
         Names.bindProperties(binder(), new ApplicationProperties());
     }

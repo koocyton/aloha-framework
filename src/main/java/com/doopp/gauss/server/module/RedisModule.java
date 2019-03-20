@@ -26,9 +26,7 @@ public class RedisModule extends AbstractModule {
         ApplicationProperties properties = new ApplicationProperties();
         String s1 = properties.s("redis.session.s1");
         ShardedJedisPool shardedJedisPool = this.shardedJedisPool(this.jedisPoolConfig(properties), s1);
-        CustomShadedJedis customShadedJedis = new CustomShadedJedis();
-        customShadedJedis.setShardedJedisPool(shardedJedisPool);
-        return customShadedJedis;
+        return new CustomShadedJedis(shardedJedisPool);
     }
 
 
@@ -39,9 +37,7 @@ public class RedisModule extends AbstractModule {
         ApplicationProperties properties = new ApplicationProperties();
         String s2 = properties.s("redis.session.s2");
         ShardedJedisPool shardedJedisPool = this.shardedJedisPool(this.jedisPoolConfig(properties), s2);
-        CustomShadedJedis customShadedJedis = new CustomShadedJedis();
-        customShadedJedis.setShardedJedisPool(shardedJedisPool);
-        return customShadedJedis;
+        return new CustomShadedJedis(shardedJedisPool);
     }
 
     private JedisPoolConfig jedisPoolConfig(ApplicationProperties properties) {

@@ -1,19 +1,14 @@
 package com.doopp.gauss.server.filter;
 
-import com.doopp.gauss.common.defined.CommonError;
-import com.doopp.gauss.common.defined.CommonField;
-import com.doopp.gauss.common.entity.User;
-import com.doopp.gauss.common.entity.vo.UserVO;
-import com.doopp.gauss.common.exception.CommonException;
-import com.doopp.gauss.common.message.CommonResponse;
+import com.doopp.gauss.oauth.defined.CommonError;
+import com.doopp.gauss.oauth.defined.CommonField;
+import com.doopp.gauss.oauth.exception.CommonException;
 import com.doopp.gauss.oauth.service.ManageService;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.google.inject.Injector;
-import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.cookie.Cookie;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 

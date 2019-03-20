@@ -1,18 +1,18 @@
 package com.doopp.gauss.oauth.service.impl;
 
 import com.doopp.gauss.oauth.service.OAuthService;
-import com.doopp.gauss.common.dao.ClientDao;
-import com.doopp.gauss.common.dao.UserDao;
-import com.doopp.gauss.common.defined.CommonError;
-import com.doopp.gauss.common.entity.Client;
-import com.doopp.gauss.common.entity.User;
-import com.doopp.gauss.common.exception.CommonException;
-import com.doopp.gauss.common.message.OAuthRequest;
-import com.doopp.gauss.common.message.request.LoginRequest;
-import com.doopp.gauss.common.message.request.RegisterRequest;
-import com.doopp.gauss.common.utils.EncryHelper;
+import com.doopp.gauss.oauth.dao.ClientDao;
+import com.doopp.gauss.oauth.dao.UserDao;
+import com.doopp.gauss.oauth.defined.CommonError;
+import com.doopp.gauss.oauth.entity.Client;
+import com.doopp.gauss.oauth.entity.User;
+import com.doopp.gauss.oauth.exception.CommonException;
+import com.doopp.gauss.oauth.message.OAuthRequest;
+import com.doopp.gauss.oauth.message.request.LoginRequest;
+import com.doopp.gauss.oauth.message.request.RegisterRequest;
+import com.doopp.gauss.oauth.utils.EncryHelper;
 import com.doopp.gauss.server.redis.CustomShadedJedis;
-import com.doopp.gauss.server.util.IdWorker;
+import com.doopp.gauss.oauth.utils.IdWorker;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import lombok.extern.slf4j.Slf4j;
@@ -72,7 +72,7 @@ public class OAuthServiceImpl implements OAuthService {
             return Mono.just(user);
         }
         catch(Exception e) {
-            e.printStackTrace();
+            // e.printStackTrace();
             return Mono.error(new CommonException(CommonError.ACCOUNT_EXIST));
         }
     }
