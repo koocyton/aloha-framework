@@ -80,17 +80,14 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
 
     @Override
     public void disconnect(Channel channel) {
-        try {
+        if (channel!=null && channel.attr(CHANNEL_UNIQUE_KEY) != null) {
             String channelKey = channel.attr(CHANNEL_UNIQUE_KEY).get();
             channelMap.remove(channelKey);
             queueMessageMap.remove(channelKey);
-            if (channel.isActive()) {
-                channel.disconnect();
-                channel.close();
-            }
         }
-        catch(Exception e) {
-            // e.printStackTrace();
+        if (channel!=null && channel.isActive()) {
+            channel.disconnect();
+            channel.close();
         }
         log.info("User leave : {}", channelMap.size());
     }
