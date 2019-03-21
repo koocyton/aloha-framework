@@ -7,13 +7,11 @@ import com.google.inject.Singleton;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.ws.rs.Path;
 import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @Path("/manage/chat/ws")
@@ -26,11 +24,6 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
     @Override
     public Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel) {
         return httpClientUtil.get("https://www.doopp.com", new HashMap<>())
-                .retry(5)
-                .onErrorResume(throwable -> {
-                    // throwable.printStackTrace();
-                    return null;
-                })
                 .map(byteBuf -> {
                     String resp = byteBuf.toString(Charset.forName("UTF-8"));
                     sendTextMessage(resp, channel);

@@ -1,5 +1,7 @@
 package com.doopp.gauss.oauth.utils;
 
+import io.netty.buffer.ByteBuf;
+import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;
 import reactor.netty.http.client.HttpClient;
 
@@ -22,7 +24,7 @@ public class HttpClientUtil {
             .aggregate();
     }
 
-    public ByteBufMono post(String url, Map<String, String> headers, Map<String, String> postData) {
+    public Mono<ByteBuf> post(String url, Map<String, String> headers, Map<String, String> postData) {
         return httpClient
             .headers(httpHeaders -> {
                 for(String key : headers.keySet()) {

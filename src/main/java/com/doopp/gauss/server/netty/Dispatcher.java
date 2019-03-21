@@ -202,44 +202,49 @@ public class Dispatcher {
 
     private Publisher<Void> ws(WebsocketInbound in, WebsocketOutbound out, WebSocketServerHandle handleObject, RequestAttribute requestAttribute) {
         return out.withConnection(c -> {
-                    // channel
-                    Channel channel = c.channel();
-                    // on disconnect
-                    c.onDispose().subscribe(null, null, () -> {
+            // channel
+            Channel channel = c.channel();
+            // on disconnect
+            c.onDispose().subscribe(null, null, () -> {
+                handleObject.disconnect(channel);
+            });
+            // set requestAttribute to channel
+            channel.attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
+            // set channel to requestAttribute
+            requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
+            // on connect
+            handleObject.connected(channel);
+            // on receive
+            in.aggregateFrames().receiveFrames().flatMap(frame -> {
+                // text frame
+                if (frame instanceof TextWebSocketFrame) {
+                    return handleObject.onTextMessage((TextWebSocketFrame) frame, channel);
+                }
+                // binary frame
+                else if (frame instanceof BinaryWebSocketFrame) {
+                    handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, channel);
+                }
+                // ping frame
+                else if (frame instanceof PingWebSocketFrame) {
+                    handleObject.onPingMessage((PingWebSocketFrame) frame, channel);
+                }
+                // pong frame
+                else if (frame instanceof PongWebSocketFrame) {
+                    handleObject.onPongMessage((PongWebSocketFrame) frame, channel);
+                }
+                // close ?
+                else if (frame instanceof CloseWebSocketFrame) {
+                    c.dispose();
+                    handleObject.disconnect(channel);
+                }
+                return Mono.empty();
+            })
+                    .onErrorResume(throwable -> {
                         handleObject.disconnect(channel);
-                    });
-                    // set requestAttribute to channel
-                    channel.attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
-                    // set channel to requestAttribute
-                    requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
-                    // on connect
-                    handleObject.connected(channel);
-                    // on receive
-                    in.aggregateFrames().receiveFrames().flatMap(frame -> {
-                        // text frame
-                        if (frame instanceof TextWebSocketFrame) {
-                            return handleObject.onTextMessage((TextWebSocketFrame) frame, channel);
-                        }
-                        // binary frame
-                        else if (frame instanceof BinaryWebSocketFrame) {
-                            handleObject.onBinaryMessage((BinaryWebSocketFrame) frame, channel);
-                        }
-                        // ping frame
-                        else if (frame instanceof PingWebSocketFrame) {
-                            handleObject.onPingMessage((PingWebSocketFrame) frame, channel);
-                        }
-                        // pong frame
-                        else if (frame instanceof PongWebSocketFrame) {
-                            handleObject.onPongMessage((PongWebSocketFrame) frame, channel);
-                        }
-                        // close ?
-                        else if (frame instanceof CloseWebSocketFrame) {
-                            handleObject.disconnect(channel);
-                        }
-                        return Mono.empty();
+                        return Mono.error(throwable);
                     })
                     .subscribe();
-                })
+        })
                 // options
                 .options(NettyPipeline.SendOptions::flushOnEach)
                 // send string
@@ -365,7 +370,7 @@ public class Dispatcher {
             else {
                 File dir = new File(resourcePath);
                 File[] files = dir.listFiles();
-                if (files==null) {
+                if (files == null) {
                     continue;
                 }
                 for (File file : files) {
