@@ -5,9 +5,10 @@ Reactor + Netty + Guice + Mybatis + Jedis(Redisson) + Gson(Grpc) + Websocket
 ``` html
 Reactor-netty
 Guice ( Ioc AOP )
-MyBatis ( Database )
+MyBatis
 HikariCP
-Gson ( json 序列化 )
+Gson ( Json )
+Pagehelper ( 分页 )
 kryo (序列化)
 slf4j ( 日志 )
 ```
@@ -17,7 +18,7 @@ slf4j ( 日志 )
 @Path 请求路径
 @GET  HttpRequest Method
 @POST HttpRequest Method
-WebSocketServerHandle 类用于处理 websocket
+AbstractWebSocketServerHandle 继承此类，处理 websocket 事件
 RequestAttribute 类型，以后补充，用户存放当前请求的数据
 HttpServerRequest reactor-netty 的 request
 HttpServerResponse reactor-netty 的 response
@@ -27,45 +28,63 @@ HttpServerResponse reactor-netty 的 response
 @PathParam 获取 url 路径解析
 @FormParam 获取表单
 @BeanParam 将 request json body 转对象 
-@FileParam 上传的文件
+@UploadFilesParam 上传的文件
 ```
 
 @POST ， @GET ， @PATH 例子
 ```java
     @GET
     @Path("/authentication")
-    public CommonResponse<Authentication> authentication() {
-        return CommonResponse.just(authentication);
+    public Mono<Authentication> authentication() {
+        Authentication authentication = new Authentication(
+                applicationProperties.l("admin.client.id"),
+                applicationProperties.s("admin.client.secret")
+        );
+        return Mono.just(authentication);
     }
 
     @GET
     @Path("/manager")
-    public CommonResponse<User> sessionManager() {
-        return CommonResponse.just(userDao.getById(1L));
+    public Mono<UserVO> currentManager(@RequestAttributeParam("current_user") UserVO user) {
+        return Mono.just(user);
+    }
+
+    @GET
+    @Path("/users")
+    public Mono<ListPage<User>> users(@QueryParam("page") Integer page) {
+        PageHelper.startPage(page, 30);
+        return manageService.getUsers()
+            .map(list->new ListPage<>(list, User.class));
+    }
+    
+    @POST
+    @Path("/auto-login")
+    public Mono<SessionToken> autoLogin(@BeanParam OAuthRequest<LoginRequest> commonRequest) {
+        LoginRequest loginRequest = commonRequest.getData();
+        return oauthService
+            .userAutoLogin(loginRequest.getAccount())
+            .map(user ->new SessionToken(oauthService.createSessionToken(user)));
     }
 ```
 
 Websocket 类
 ```java
-@Path("/game")
+@Slf4j
+@Path("/manage/chat/ws")
 @Singleton
 public class GameWsHandle extends AbstractWebSocketServerHandle {
 
-    @Override
-    public void onConnect(Channel channel) {
-        // 连接成功
-    }
-    
-    @Override
-    public void onTextMessage(TextWebSocketFrame frame, Channel channel) {
-        // 收到消息 frame
-    }
+    @Inject
+    private HttpClientUtil httpClientUtil;
 
     @Override
-    public void disconnect(Channel channel) {
-        // 关闭连接
-        super.close(channel);
+    public Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel) {
+        return httpClientUtil.get("https://www.doopp.com", new HashMap<>())
+                .map(byteBuf -> {
+                    String resp = byteBuf.toString(Charset.forName("UTF-8"));
+                    sendTextMessage(resp, channel);
+                    return resp;
+                });
     }
 }
-
 ```
