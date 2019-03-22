@@ -1,42 +1,64 @@
 <!DOCTYPE html>
 <html lang="zh-cn">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>websocket demo</title>
-  <link href="https://cdn.bootcss.com/twitter-bootstrap/3.4.0/css/bootstrap.min.css" rel="stylesheet">
-  <link href="css/style.css" rel="stylesheet">
-  <script src="js/angular.min.js"></script>
-  <script src="js/angular-cookies.min.js"></script>
-  <script src="js/ui-bootstrap-tpls-2.5.0.min.js"></script>
-  <script src="js/angular-ktanchor.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Websocket Demo , Chat room</title>
+    <link href="https://cdn.bootcss.com/twitter-bootstrap/3.4.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <script src="js/angular.min.js"></script>
+    <script src="js/ui-bootstrap-tpls-2.5.0.min.js"></script>
+    <script src="js/angular-ui-router.min.js"></script>
+    <script src="js/angular-ktanchor.js"></script>
 </head>
 
 <body ng-app="ngChatApp">
 
-<div class="body-background" style="top:0;left:0;width:100%;height:100%;overflow:hidden;">
-  <div class="body-background blur-10"></div>
-</div>
-
-<div class="body-content" ng-controller="ngChatController"
-     style="width:360px;margin-top:200px;margin-left:calc(50% - 180px);">
-
-  <form ng-submit="submitForm()">
-    <div class="modal-content">
-      <div class="modal-body">
-        <div class="form-group">
-          <input type="text" name="account" class="form-control" autocomplete="off" placeholder="请输入昵称"
-                 ng-model="formData.data.account" maxlength="50">
-        </div>
-        <div class="form-group">
-          <button type="submit" class="btn btn-success" style="width:100%;">进入聊天室</button>
-        </div>
-      </div>
+    <div class="body-background" style="top:0;left:0;width:100%;height:100%;overflow:hidden;">
+        <div class="body-background blur-10"></div>
     </div>
-  </form>
 
-</div>
+    <div class="body-content">
+        <div class="body-content-left scroll-container opacity-82">
+            <div style="top:0;position:relative;padding:0 0;">
+                <div class="treemenu-container">
+                    <div ng-repeat="mainMenuItem0 in mainMenuData track by $index">
+                        <a href="javascript:void(0);" ng-click="mainMenuItem0.open=(mainMenuItem0.open!=null && mainMenuItem0.open==true)?false:true" class="tree-menu tree-menu-0">
+                            <div>{{ mainMenuItem0.text }}</div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="body-content-right scroll-container opacity-92" style="padding:20px;">
+            <div style="position:relative;padding:20px;width:100%;height:calc(100% - 100px);overflow-y:scroll;border:2px solid #cccccc;margin-bottom:20px;" class="radio">
+                <div style="position:relative;max-width:70%;" class="alert alert-success" role="alert">...</div>
+                <div style="position:relative;max-width:70%;" class="alert alert-info" role="alert">...</div>
+                <div style="position:relative;max-width:70%;" class="alert alert-warning" role="alert">...</div>
+                <div style="position:relative;max-width:70%;" class="alert alert-danger" role="alert">...</div>
+                <div style="position:relative;max-width:70%;right:0;" class="alert alert-danger" role="alert">...</div>
+                <div style="position:relative;left:50%;">某某加入聊天室</div>
+            </div>
+            <div class="row">
+                <div class="col-md-10">
+                    <input class="form-control" type="text">
+                </div>
+                <div class="col-md-2">
+                    <button style="width:100%;" class="btn btn-success">你说 ...</button>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
 
-</body>
+    <nav class="navbar navbar-inverse" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+                <a href="javascript:void(0);" class="navbar-brand"> &nbsp; Chat Room</a>
+            </div>
+        </div>
+    </nav>
+
+    </body>
 </html>

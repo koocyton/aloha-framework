@@ -74,9 +74,9 @@ angular.module('ngLoginApp', ['ui.bootstrap', 'ngCookies'])
     }]
 );
 
-/** chat app **/
-angular.module('ngChatApp', ['ui.bootstrap', 'ngCookies'])
-    .controller('ngChatController', ['$scope', '$http', '$cookies', function ($scope, $http, $cookies) {
+/** chat login app **/
+angular.module('ngChatLoginApp', ['ui.bootstrap', 'ngCookies'])
+    .controller('ngChatLoginController', ['$scope', '$http', '$cookies', function ($scope, $http, $cookies) {
     $scope.formData = {};
     $scope.submitForm = function() {
         $http.post('/oauth/api/auto-login', $scope.formData)
@@ -86,11 +86,7 @@ angular.module('ngChatApp', ['ui.bootstrap', 'ngCookies'])
                         let expireDate = new Date();
                         expireDate.setDate(expireDate.getDate() + loginResponse.expire);
                         $cookies.put("se_id", loginResponse.token,{'expire': expireDate});
-                        let ws = new WebSocketService("/manage/chat/ws");
-                        let randomMessage = "你好 " + Math.floor(Math.random()*100000);
-                        setInterval(function(){
-                            ws.send(randomMessage);
-                        }, 1000)
+                        window.top.location = "/manage/chat.html";
                     }
                 },
                 function(response) {
@@ -116,6 +112,22 @@ angular.module('ngChatApp', ['ui.bootstrap', 'ngCookies'])
         }
     });
 }]);
+
+/** chat room execute **/
+let chatRun = function ($rootScope, $state, $http) {
+    // 检查登陆成功才加载其他
+    checkLoginSuccess($rootScope, $state, $http, function($rootScope, $state, checkLoginData){
+        let ws = new WebSocketService("/manage/chat/ws");
+        ws.onMessage(function(message){
+
+        })
+    });
+};
+
+/** chat room loading **/
+angular.module('ngChatApp', ['ui.router', 'ui.bootstrap'])
+    // app execute
+    .run(['$rootScope', '$state', '$http', chatRun]);
 
 /** 高亮代码块 **/
 let highlightBlock = function() {
