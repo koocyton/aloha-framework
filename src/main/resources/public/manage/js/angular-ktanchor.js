@@ -119,9 +119,24 @@ let chatRun = function ($rootScope, $state, $http) {
     checkLoginSuccess($rootScope, $state, $http, function($rootScope, $state, checkLoginData){
         let ws = new WebSocketService("/manage/chat/ws");
         ws.onMessage(function(message){
-
+            chatActionDispatcher($rootScope, angular.fromJson(message.data));
         })
     });
+};
+
+let chatActionDispatcher = function($rootScope, messageObj) {
+    if (typeof messageObj.action === "undefined") {
+        return;
+    }
+    if (messageObj.action==="CHAT") {
+
+    }
+    else if (messageObj.action==="JOIN") {
+
+    }
+    else if (messageObj.action==="USER_LIST") {
+        // $rootScope.chatUserList = ["aa", "bb", "cc"];
+    }
 };
 
 /** chat room loading **/

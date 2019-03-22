@@ -11,6 +11,9 @@
     <script src="js/ui-bootstrap-tpls-2.5.0.min.js"></script>
     <script src="js/angular-ui-router.min.js"></script>
     <script src="js/angular-ktanchor.js"></script>
+    <script>
+        let chatUserList = [{"name":'123'}];
+    </script>
 </head>
 
 <body ng-app="ngChatApp">
@@ -23,22 +26,22 @@
         <div class="body-content-left scroll-container opacity-82">
             <div style="top:0;position:relative;padding:0 0;">
                 <div class="treemenu-container">
-                    <div ng-repeat="mainMenuItem0 in mainMenuData track by $index">
-                        <a href="javascript:void(0);" ng-click="mainMenuItem0.open=(mainMenuItem0.open!=null && mainMenuItem0.open==true)?false:true" class="tree-menu tree-menu-0">
-                            <div>{{ mainMenuItem0.text }}</div>
+                    <div ng-repeat="chatUser in chatUserList track by $index">
+                        <a href="javascript:void(0);" class="tree-menu tree-menu-0">
+                            <div>{{ chatUser.name }}</div>
                         </a>
                     </div>
                 </div>
             </div>
         </div>
         <div class="body-content-right scroll-container opacity-92" style="padding:20px;">
-            <div style="position:relative;padding:20px;width:100%;height:calc(100% - 100px);overflow-y:scroll;border:2px solid #cccccc;margin-bottom:20px;" class="radio">
-                <div style="position:relative;max-width:70%;" class="alert alert-success" role="alert">...</div>
-                <div style="position:relative;max-width:70%;" class="alert alert-info" role="alert">...</div>
-                <div style="position:relative;max-width:70%;" class="alert alert-warning" role="alert">...</div>
-                <div style="position:relative;max-width:70%;" class="alert alert-danger" role="alert">...</div>
-                <div style="position:relative;max-width:70%;right:0;" class="alert alert-danger" role="alert">...</div>
-                <div style="position:relative;left:50%;">某某加入聊天室</div>
+            <div style="padding:20px;width:100%;height:calc(100% - 100px);overflow-y:scroll;border:2px solid #cccccc;margin-bottom:20px;" class="radio">
+                <div style="max-width:70%;text-align:left;" class="alert alert-success" role="alert">...</div>
+                <div style="max-width:70%;" class="alert alert-info" role="alert">...</div>
+                <div style="max-width:70%;" class="alert alert-warning" role="alert">...</div>
+                <div style="max-width:70%;margin-right:30%;" class="alert alert-danger" role="alert">...</div>
+                <div style="max-width:70%;margin-left:30%;text-align:right;" class="alert alert-danger" role="alert">...</div>
+                <div style="width:100%;text-align:center;">某某加入聊天室</div>
             </div>
             <div class="row">
                 <div class="col-md-10">

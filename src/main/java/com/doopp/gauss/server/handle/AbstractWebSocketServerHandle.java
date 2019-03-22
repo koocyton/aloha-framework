@@ -4,6 +4,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.AttributeKey;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxProcessor;
@@ -16,6 +17,7 @@ import java.util.Map;
 @Slf4j
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
 
+    @Getter
     private Map<String, Channel> channelMap = new HashMap<>();
 
     private Map<String, FluxProcessor<String, String>> queueMessageMap = new HashMap<>();

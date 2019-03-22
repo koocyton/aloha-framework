@@ -1,11 +1,17 @@
 package com.doopp.gauss.oauth.handle;
 
+import com.doopp.gauss.oauth.defined.ChatAction;
+import com.doopp.gauss.oauth.defined.CommonField;
+import com.doopp.gauss.oauth.entity.vo.UserVO;
 import com.doopp.gauss.oauth.utils.HttpClientUtil;
 import com.doopp.gauss.server.handle.AbstractWebSocketServerHandle;
+import com.doopp.gauss.server.resource.RequestAttribute;
+import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -21,6 +27,37 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
     @Inject
     private HttpClientUtil httpClientUtil;
 
+    @Inject
+    private Gson gson;
+
+    private String sendAction(ChatAction action, UserVO user, String message) {
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setAction(action);
+        chatMessage.setName(user.getName());
+        chatMessage.setMessage(message);
+        return gson.toJson(chatMessage);
+    }
+
+    @Override
+    public void connected(Channel channel) {
+        RequestAttribute requestAttribute = channel.attr(CommonField.REQUEST_ATTRIBUTE).get();
+        UserVO userVO = requestAttribute.getAttribute(CommonField.CURRENT_USER, UserVO.class);
+        super.connected(channel, String.valueOf(userVO.getId()));
+        sendTextMessage(sendAction(ChatAction.JOIN, userVO, "昂首阔步踏入江湖"), channel);
+        String userList = "";
+        for(Channel mapChannel : super.getChannelMap().values()) {
+            if (mapChannel.attr(CommonField.REQUEST_ATTRIBUTE)!=null) {
+                userList = userList.equals("") ? "" : ",";
+                userList += mapChannel
+                        .attr(CommonField.REQUEST_ATTRIBUTE)
+                        .get()
+                        .getAttribute(CommonField.CURRENT_USER, UserVO.class)
+                        .getName();
+            }
+        }
+        sendTextMessage(sendAction(ChatAction.USER_LIST, userVO, userList), channel);
+    }
+
     @Override
     public Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel) {
         return httpClientUtil.get("https://www.doopp.com", new HashMap<>())
@@ -29,5 +66,12 @@ public class GameWsHandle extends AbstractWebSocketServerHandle {
                     sendTextMessage(resp, channel);
                     return resp;
                 });
+    }
+
+    @Data
+    private static class ChatMessage {
+        private ChatAction action;
+        private String name;
+        private String message;
     }
 }
