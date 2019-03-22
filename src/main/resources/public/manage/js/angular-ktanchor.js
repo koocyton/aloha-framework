@@ -117,10 +117,15 @@ angular.module('ngChatLoginApp', ['ui.bootstrap', 'ngCookies'])
 let chatRun = function ($rootScope, $state, $http) {
     // 检查登陆成功才加载其他
     checkLoginSuccess($rootScope, $state, $http, function($rootScope, $state, checkLoginData){
+        $rootScope.chatUserList = chatUserList;
         let ws = new WebSocketService("/manage/chat/ws");
         ws.onMessage(function(message){
             chatActionDispatcher($rootScope, angular.fromJson(message.data));
-        })
+        });
+        $rootScope.submitMessage = function() {
+            ws.send($rootScope.formData.data.message);
+            $rootScope.formData.data.message = "";
+        };
     });
 };
 
@@ -128,14 +133,20 @@ let chatActionDispatcher = function($rootScope, messageObj) {
     if (typeof messageObj.action === "undefined") {
         return;
     }
-    if (messageObj.action==="CHAT") {
-
-    }
-    else if (messageObj.action==="JOIN") {
-
+    if (messageObj.action==="JOIN" || messageObj.action==="CHAT") {
+        let ii = chatMessageList.length;
+        chatMessageList[ii] = messageObj;
+        $rootScope.chatMessageList = chatMessageList;
+        $rootScope.$apply()
     }
     else if (messageObj.action==="USER_LIST") {
-        // $rootScope.chatUserList = ["aa", "bb", "cc"];
+        let userNames = messageObj.message.split(",");
+        let userList = [];
+        for(let ii=0; ii<userNames.length; ii++) {
+            userList[ii] = {"name":userNames[ii]}
+        }
+        $rootScope.chatUserList = userList;
+        $rootScope.$apply()
     }
 };
 

@@ -12,7 +12,8 @@
     <script src="js/angular-ui-router.min.js"></script>
     <script src="js/angular-ktanchor.js"></script>
     <script>
-        let chatUserList = [{"name":'123'}];
+        let chatUserList = [];
+        let chatMessageList = [];
     </script>
 </head>
 
@@ -26,8 +27,11 @@
         <div class="body-content-left scroll-container opacity-82">
             <div style="top:0;position:relative;padding:0 0;">
                 <div class="treemenu-container">
+                    <a href="javascript:void(0);" class="tree-menu tree-menu-0">
+                        <div>在线 {{ chatUserList.length }} 位</div>
+                    </a>
                     <div ng-repeat="chatUser in chatUserList track by $index">
-                        <a href="javascript:void(0);" class="tree-menu tree-menu-0">
+                        <a href="javascript:void(0);" class="tree-menu tree-menu-1">
                             <div>{{ chatUser.name }}</div>
                         </a>
                     </div>
@@ -36,20 +40,24 @@
         </div>
         <div class="body-content-right scroll-container opacity-92" style="padding:20px;">
             <div style="padding:20px;width:100%;height:calc(100% - 100px);overflow-y:scroll;border:2px solid #cccccc;margin-bottom:20px;" class="radio">
-                <div style="max-width:70%;text-align:left;" class="alert alert-success" role="alert">...</div>
-                <div style="max-width:70%;" class="alert alert-info" role="alert">...</div>
-                <div style="max-width:70%;" class="alert alert-warning" role="alert">...</div>
-                <div style="max-width:70%;margin-right:30%;" class="alert alert-danger" role="alert">...</div>
-                <div style="max-width:70%;margin-left:30%;text-align:right;" class="alert alert-danger" role="alert">...</div>
-                <div style="width:100%;text-align:center;">某某加入聊天室</div>
+                <div ng-repeat="chatMessage in chatMessageList track by $index">
+                    <div ng-if="chatMessage.action=='CHAT'" style="max-width:70%;text-align:left;" class="alert alert-success" role="alert">
+                        <b>{{ chatMessage.name }} : </b> {{ chatMessage.message }}
+                    </div>
+                    <div ng-if="chatMessage.action=='JOIN'" style="width:100%;text-align:center;">
+                        <b>{{ chatMessage.name }}</b> {{ chatMessage.message }}
+                    </div>
+                </div>
             </div>
             <div class="row">
-                <div class="col-md-10">
-                    <input class="form-control" type="text">
-                </div>
-                <div class="col-md-2">
-                    <button style="width:100%;" class="btn btn-success">你说 ...</button>
-                </div>
+                <form ng-submit="submitMessage()">
+                    <div class="col-md-10">
+                        <input class="form-control" name="message" type="text" ng-model="formData.data.message">
+                    </div>
+                    <div class="col-md-2">
+                        <button style="width:100%;" class="btn btn-success">你说 ...</button>
+                    </div>
+                </form>
             </div>
             </div>
         </div>
