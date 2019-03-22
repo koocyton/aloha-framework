@@ -39,7 +39,7 @@
             </div>
         </div>
         <div class="body-content-right scroll-container opacity-92" style="padding:20px;">
-            <div style="padding:20px;width:100%;height:calc(100% - 100px);overflow-y:scroll;border:2px solid #cccccc;margin-bottom:20px;" class="radio">
+            <div style="padding:20px;width:100%;height:calc(100% - 100px);overflow-y:scroll;border:2px solid #cccccc;margin-bottom:20px;" id="chat-content">
                 <div ng-repeat="chatMessage in chatMessageList track by $index">
                     <div ng-if="chatMessage.action=='CHAT'" style="max-width:70%;text-align:left;" class="alert alert-success" role="alert">
                         <b>{{ chatMessage.name }} : </b> {{ chatMessage.message }}

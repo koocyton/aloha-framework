@@ -148,6 +148,7 @@ let chatActionDispatcher = function($rootScope, messageObj) {
         $rootScope.chatUserList = userList;
         $rootScope.$apply()
     }
+    document.getElementById("chat-content").scrollTop = document.getElementById("chat-content").scrollHeight;
 };
 
 /** chat room loading **/
