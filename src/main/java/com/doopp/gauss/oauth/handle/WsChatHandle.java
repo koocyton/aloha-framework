@@ -90,18 +90,19 @@ public class WsChatHandle extends AbstractWebSocketServerHandle {
             }
         }
 
-        if (channel!=null && channel.isActive()) {
+        if (channel!=null) {
             RequestAttribute requestAttribute = channel.attr(CommonField.REQUEST_ATTRIBUTE).get();
             UserVO userVO = requestAttribute.getAttribute(CommonField.CURRENT_USER, UserVO.class);
 
             for(Channel mapChannel : super.getChannelMap().values()) {
-                if (joinLeave.equals("join")) {
-                    sendTextMessage(sendAction(ChatAction.JOIN, userVO, "昂首阔步踏入江湖"), mapChannel);
+                if (mapChannel.isActive()) {
+                    if (joinLeave.equals("join")) {
+                        sendTextMessage(sendAction(ChatAction.JOIN, userVO, "昂首阔步踏入江湖"), mapChannel);
+                    } else if (joinLeave.equals("leave")) {
+                        sendTextMessage(sendAction(ChatAction.JOIN, userVO, "挥一挥衣袖，不带走一两银子 ..."), mapChannel);
+                    }
+                    sendTextMessage(sendAction(ChatAction.USER_LIST, userVO, userList.toString()), mapChannel);
                 }
-                else if (joinLeave.equals("leave")) {
-                    sendTextMessage(sendAction(ChatAction.JOIN, userVO, "挥一挥衣袖，不带走一两银子 ..."), mapChannel);
-                }
-                sendTextMessage(sendAction(ChatAction.USER_LIST, userVO, userList.toString()), mapChannel);
             }
         }
     }
