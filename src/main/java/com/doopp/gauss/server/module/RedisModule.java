@@ -22,8 +22,8 @@ public class RedisModule extends AbstractModule {
     @Singleton
     @Provides
     @Named("userSessionRedis")
-    public CustomShadedJedis userSessionRedis(JedisPoolConfig jedisPoolConfig, @Named("redis.session.s1") String userRedisServer) {
-        ShardedJedisPool shardedJedisPool = this.shardedJedisPool(jedisPoolConfig, userRedisServer);
+    public CustomShadedJedis userSessionRedis(JedisPoolConfig jedisPoolConfig, @Named("redis.session.userRedisServers") String userRedisServer) {
+        ShardedJedisPool shardedJedisPool = this.shardedJedisPool(jedisPoolConfig, userRedisServer.split(","));
         return new CustomShadedJedis(shardedJedisPool);
     }
 
@@ -31,11 +31,12 @@ public class RedisModule extends AbstractModule {
     @Singleton
     @Provides
     @Named("managerSessionRedis")
-    public CustomShadedJedis managerSessionRedis(JedisPoolConfig jedisPoolConfig, @Named("redis.session.s2") String managerRedisServer) {
-        ShardedJedisPool shardedJedisPool = this.shardedJedisPool(jedisPoolConfig, managerRedisServer);
+    public CustomShadedJedis managerSessionRedis(JedisPoolConfig jedisPoolConfig, @Named("redis.session.managerRedisServers") String managerRedisServer) {
+        ShardedJedisPool shardedJedisPool = this.shardedJedisPool(jedisPoolConfig, managerRedisServer.split(","));
         return new CustomShadedJedis(shardedJedisPool);
     }
 
+    @Singleton
     @Inject
     private JedisPoolConfig jedisPoolConfig(@Named("redis.pool.maxTotal") int maxTotal,
                                             @Named("redis.pool.maxIdle") int maxIdle,
