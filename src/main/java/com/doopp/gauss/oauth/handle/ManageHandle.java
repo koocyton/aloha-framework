@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 
 @Slf4j
 @Path("/manage/api")
@@ -32,6 +33,7 @@ public class ManageHandle {
 
     @GET
     @Path("/authentication")
+    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<Authentication> authentication() {
         Authentication authentication = new Authentication(clientId, clientSecret);
         return Mono.just(authentication);
@@ -39,12 +41,14 @@ public class ManageHandle {
 
     @GET
     @Path("/manager")
+    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<UserVO> currentManager(@RequestAttributeParam("current_user") UserVO user) {
         return Mono.just(user);
     }
 
     @GET
     @Path("/users")
+    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<ListPage<User>> users(@QueryParam("page") Integer page) {
         PageHelper.startPage(page, 30);
         return manageService.getUsers()
@@ -53,6 +57,7 @@ public class ManageHandle {
 
     @GET
     @Path("/apps")
+    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<ListPage<Client>> apps(@QueryParam("page") Integer page) {
         PageHelper.startPage(page, 30);
         return manageService.getClients()

@@ -20,6 +20,7 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
 import io.netty.handler.codec.http.websocketx.*;
+import io.netty.util.AsciiString;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
@@ -31,6 +32,7 @@ import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
 import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -140,10 +142,21 @@ public class Dispatcher {
                     int status = (o instanceof CommonException)
                             ? ((CommonException) o).getCode()
                             : HttpResponseStatus.OK.code();
+
+                    // content type
+                    String contentType = MediaType.TEXT_HTML;
+                    if (method.isAnnotationPresent(Produces.class)) {
+                        String _contentType = "";
+                        for (String mediaType : method.getAnnotation(Produces.class).value()) {
+                            _contentType += (_contentType.equals("")) ? mediaType : "; " + mediaType;
+                        }
+                        contentType = _contentType;
+                    }
+
                     // json
                     return resp.status(status)
                             .addHeader(HttpHeaderNames.SERVER, "power by reactor")
-                            .addHeader(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON + "; charset=UTF-8")
+                            .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType)
                             .sendString(Mono.just(o)
                                     .map(CommonResponse::new)
                                     .map(gsonCreate::toJson)

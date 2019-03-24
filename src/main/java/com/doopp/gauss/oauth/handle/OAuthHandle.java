@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 
 @Slf4j
 @Path("/oauth/api")
@@ -25,6 +26,7 @@ public class OAuthHandle {
 
     @POST
     @Path("/auto-login")
+    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<SessionToken> autoLogin(@BeanParam OAuthRequest<LoginRequest> commonRequest) {
         try {
             oauthService.checkLoginRequest(commonRequest);
@@ -40,6 +42,7 @@ public class OAuthHandle {
 
     @POST
     @Path("/login")
+    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<SessionToken> login(@BeanParam OAuthRequest<LoginRequest> commonRequest) {
         try {
             oauthService.checkLoginRequest(commonRequest);
@@ -59,6 +62,7 @@ public class OAuthHandle {
 
     @POST
     @Path("/register")
+    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<SessionToken> register(@BeanParam OAuthRequest<RegisterRequest> commonRequest) {
         try {
             oauthService.checkRegisterRequest(commonRequest);
@@ -78,6 +82,7 @@ public class OAuthHandle {
 
     @GET
     @Path("/user")
+    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<UserVO> getUserInfo(@RequestAttributeParam("currentUser") User user) {
         UserVO userVO = UserMapper.INSTANCE.toUserDTO(user);
         return Mono.just(userVO);
