@@ -3,36 +3,36 @@ package com.doopp.gauss.server;
 import com.doopp.gauss.server.filter.ManageFilter;
 import com.doopp.gauss.server.filter.OAuthFilter;
 import com.doopp.gauss.server.netty.Dispatcher;
-import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.module.ApplicationModule;
 import com.doopp.gauss.server.module.CustomMyBatisModule;
 import com.doopp.gauss.server.module.RedisModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import lombok.extern.slf4j.Slf4j;
+import com.google.inject.name.Names;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
 
-@Slf4j
 public class KTApplication {
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
-        // BasicConfigurator.configure();
-
-        System.setProperty("applicationPropertiesConfig", args[0]);
+        Properties properties = new Properties();
+        properties.load(new FileInputStream(args[0]));
 
         Injector injector = Guice.createInjector(
+            binder -> Names.bindProperties(binder, properties),
             new CustomMyBatisModule(),
             new RedisModule(),
             new ApplicationModule()
         );
 
-        ApplicationProperties applicationProperties = injector.getInstance(ApplicationProperties.class);
-        String host = applicationProperties.s("server.host");
-        int port = applicationProperties.i("server.port");
+        String host = properties.getProperty("server.host", "127.0.0.1");
+        int port = Integer.valueOf(properties.getProperty("server.port", "8081"));
 
         Dispatcher dispatcher = new Dispatcher();
         dispatcher.setInjector(injector);
@@ -47,7 +47,8 @@ public class KTApplication {
                 .wiretap(true)
                 .bindNow();
 
-        System.out.printf("\nLaunched http server http://%s:%d/\n\n", host, port);
+        System.out.printf("\nBackend System http://%s:%d/manage/login.html\n", host, port);
+        System.out.printf("Chat System http://%s:%d/manage/chat-login.html\n\n", host, port);
 
         disposableServer.onDispose().block();
     }

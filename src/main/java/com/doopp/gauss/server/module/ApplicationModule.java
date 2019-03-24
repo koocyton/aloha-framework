@@ -4,7 +4,6 @@ import com.doopp.gauss.oauth.service.ManageService;
 import com.doopp.gauss.oauth.service.OAuthService;
 import com.doopp.gauss.oauth.service.impl.ManageServiceImpl;
 import com.doopp.gauss.oauth.service.impl.OAuthServiceImpl;
-import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.oauth.utils.HttpClientUtil;
 import com.doopp.gauss.oauth.utils.IdWorker;
 import com.google.gson.Gson;
@@ -27,11 +26,11 @@ public class ApplicationModule extends AbstractModule {
 		return new IdWorker(1, 1);
 	}
 
-	@Singleton
-	@Provides
-	public ApplicationProperties applicationProperties() {
-		return new ApplicationProperties();
-	}
+	//	@Singleton
+	//	@Provides
+	//	public ApplicationProperties applicationProperties() {
+	//		return new ApplicationProperties();
+	//	}
 
 	@Singleton
 	@Provides

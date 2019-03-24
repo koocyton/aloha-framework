@@ -6,10 +6,10 @@ import com.doopp.gauss.oauth.service.ManageService;
 import com.doopp.gauss.oauth.entity.User;
 import com.doopp.gauss.oauth.entity.vo.UserVO;
 import com.doopp.gauss.oauth.message.response.Authentication;
-import com.doopp.gauss.server.application.ApplicationProperties;
 import com.doopp.gauss.server.resource.RequestAttributeParam;
 import com.github.pagehelper.PageHelper;
 import com.google.inject.Inject;
+import com.google.inject.name.Named;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
@@ -20,18 +20,20 @@ import javax.ws.rs.*;
 public class ManageHandle {
 
     @Inject
-    private ApplicationProperties applicationProperties;
+    private ManageService manageService;
 
     @Inject
-    private ManageService manageService;
+    @Named("admin.client.id")
+    private Long clientId;
+
+    @Inject
+    @Named("admin.client.secret")
+    private String clientSecret;
 
     @GET
     @Path("/authentication")
     public Mono<Authentication> authentication() {
-        Authentication authentication = new Authentication(
-                applicationProperties.l("admin.client.id"),
-                applicationProperties.s("admin.client.secret")
-        );
+        Authentication authentication = new Authentication(clientId, clientSecret);
         return Mono.just(authentication);
     }
 
