@@ -6,6 +6,7 @@ import com.doopp.gauss.oauth.service.ManageService;
 import com.doopp.gauss.oauth.entity.User;
 import com.doopp.gauss.oauth.entity.vo.UserVO;
 import com.doopp.gauss.oauth.message.response.Authentication;
+import com.doopp.gauss.server.resource.ModelMap;
 import com.doopp.gauss.server.resource.RequestAttributeParam;
 import com.github.pagehelper.PageHelper;
 import com.google.inject.Inject;
@@ -66,7 +67,9 @@ public class ManageHandle {
 
     @GET
     @Path("/test")
-    public Mono<String> test() {
+    @Produces({MediaType.TEXT_HTML, "charset=UTF-8"})
+    public Mono<String> test(ModelMap modelMap) {
+        modelMap.addAttribute("hello", "你好呀");
         return Mono.just("test");
     }
 }
