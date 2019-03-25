@@ -159,25 +159,25 @@ public class Dispatcher {
                         contentType = _contentType;
                     }
 
+                    HttpServerResponse response = resp.status(status)
+                            .addHeader(HttpHeaderNames.SERVER, "power by reactor")
+                            .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType);
+
                     // if template
                     if (o instanceof String) {
                         // json
-                        return resp.status(status)
-                                .addHeader(HttpHeaderNames.SERVER, "power by reactor")
-                                .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType)
-                                .sendString(Mono.just((String) o))
-                                .then();
+                        return response.sendString(Mono.just((String) o)).then();
                     }
-                    else {
-                        // json
-                        return resp.status(status)
-                                .addHeader(HttpHeaderNames.SERVER, "power by reactor")
-                                .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType)
-                                .sendString(Mono.just(o)
+                    // if json
+                    else if (contentType.contains(MediaType.APPLICATION_JSON)) {
+                        return response.sendString(Mono.just(o)
                                         .map(CommonResponse::new)
                                         .map(gsonCreate::toJson)
-                                )
-                                .then();
+                                ).then();
+                    }
+                    // if other
+                    else {
+                        return response.sendObject(Mono.just(o)).then();
                     }
                 });
     }
