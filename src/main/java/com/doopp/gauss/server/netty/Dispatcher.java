@@ -11,10 +11,13 @@ import com.doopp.gauss.server.resource.ModelMap;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.doopp.gauss.server.resource.RequestAttributeParam;
 import com.doopp.gauss.server.resource.UploadFilesParam;
+import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Injector;
+import com.google.inject.name.Named;
+import freemarker.template.Configuration;
 import freemarker.template.Template;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -101,13 +104,11 @@ public class Dispatcher {
                             if (method.isAnnotationPresent(GET.class)) {
                                 log.info("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.get(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
-                                routes.options(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // POST
                             else if (method.isAnnotationPresent(POST.class)) {
                                 log.info("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.post(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
-                                routes.options(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // DELETE
                             else if (method.isAnnotationPresent(DELETE.class)) {
@@ -130,11 +131,12 @@ public class Dispatcher {
     }
 
     private Publisher<Void> httpPublisher(HttpServerRequest req, HttpServerResponse resp, Method method, Object handleObject) {
+        ModelMap modelMap = new ModelMap();
         return this
                 // 过滤请求
                 .doFilter(req, resp, new RequestAttribute())
                 // 调用路由对应的方法
-                .flatMap(requestAttribute -> this.invokeMethod(req, resp, method, handleObject, requestAttribute))
+                .flatMap(requestAttribute -> this.invokeMethod(req, resp, method, handleObject, requestAttribute, modelMap))
                 // 错误处理
                 .onErrorResume(throwable -> {
                     throwable.printStackTrace();
@@ -165,8 +167,25 @@ public class Dispatcher {
 
                     // if template
                     if (o instanceof String) {
-                        // json
-                        return response.sendString(Mono.just((String) o)).then();
+                        return response.sendString(
+                                Mono.<String>create(slink->{
+                                    // slink.success("abc");
+                                    String controllerName = handleObject.getClass().getSimpleName();
+                                    String templateDirectory = controllerName.toLowerCase().substring(0, controllerName.length()-"handle".length());
+                                    Configuration viewConfiguration = injector.getInstance(Configuration.class);
+                                    viewConfiguration.setClassForTemplateLoading(this.getClass(), "/template/" + templateDirectory);
+                                    try {
+                                        Template template = viewConfiguration.getTemplate(o + ".html");
+                                        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                                        template.process(modelMap, new OutputStreamWriter(outputStream));
+                                        slink.success(outputStream.toString("UTF-8"));
+                                    }
+                                    catch(Exception e) {
+                                        e.printStackTrace();
+                                        slink.success((String) o);
+                                    }
+                                })
+                        ).then();
                     }
                     // if json
                     else if (contentType.contains(MediaType.APPLICATION_JSON)) {
@@ -200,21 +219,21 @@ public class Dispatcher {
         return Mono.just(requestAttribute);
     }
 
-    private Mono<Object> invokeMethod(HttpServerRequest req, HttpServerResponse resp, Method method, Object handleObject, RequestAttribute requestAttribute) {
+    private Mono<Object> invokeMethod(HttpServerRequest req, HttpServerResponse resp, Method method, Object handleObject, RequestAttribute requestAttribute, ModelMap modelMap) {
         if (req.method() == HttpMethod.POST) {
             return req
                     .receive()
                     .aggregate()
                     .flatMap(byteBuf -> {
                         try {
-                            return (Mono<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, requestAttribute, byteBuf));
+                            return (Mono<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, requestAttribute, modelMap, byteBuf));
                         } catch (Exception e) {
                             return Mono.error(e);
                         }
                     });
         } else {
             try {
-                return (Mono<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, requestAttribute, null));
+                return (Mono<Object>) method.invoke(handleObject, getMethodParams(method, req, resp, requestAttribute, modelMap, null));
             } catch (Exception e) {
                 return Mono.error(e);
             }
@@ -286,7 +305,7 @@ public class Dispatcher {
                 );
     }
 
-    private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, RequestAttribute requestAttribute, ByteBuf content) {
+    private Object[] getMethodParams(Method method, HttpServerRequest request, HttpServerResponse response, RequestAttribute requestAttribute, ModelMap modelMap, ByteBuf content) {
         ArrayList<Object> objectList = new ArrayList<>();
 
         Map<String, String> questParams = new HashMap<>();
@@ -312,7 +331,7 @@ public class Dispatcher {
             }
             // modelMap
             else if (parameterClass == ModelMap.class) {
-                objectList.add(new ModelMap());
+                objectList.add(modelMap);
             }
             // upload file
             else if (parameter.getAnnotation(UploadFilesParam.class) != null) {

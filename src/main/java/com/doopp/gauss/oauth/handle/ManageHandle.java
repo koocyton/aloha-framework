@@ -61,6 +61,12 @@ public class ManageHandle {
     public Mono<ListPage<Client>> apps(@QueryParam("page") Integer page) {
         PageHelper.startPage(page, 30);
         return manageService.getClients()
-            .map(list->new ListPage<>(list, Client.class));
+                .map(list->new ListPage<>(list, Client.class));
+    }
+
+    @GET
+    @Path("/test")
+    public Mono<String> test() {
+        return Mono.just("test");
     }
 }
