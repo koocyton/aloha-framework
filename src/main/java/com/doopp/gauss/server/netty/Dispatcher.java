@@ -7,6 +7,7 @@ import com.doopp.gauss.oauth.message.CommonResponse;
 import com.doopp.gauss.server.filter.iFilter;
 import com.doopp.gauss.server.handle.StaticHandle;
 import com.doopp.gauss.server.handle.WebSocketServerHandle;
+import com.doopp.gauss.server.resource.ModelMap;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.doopp.gauss.server.resource.RequestAttributeParam;
 import com.doopp.gauss.server.resource.UploadFilesParam;
@@ -14,6 +15,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Injector;
+import freemarker.template.Template;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
@@ -33,14 +35,18 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 @Slf4j
 public class Dispatcher {
@@ -153,15 +159,26 @@ public class Dispatcher {
                         contentType = _contentType;
                     }
 
-                    // json
-                    return resp.status(status)
-                            .addHeader(HttpHeaderNames.SERVER, "power by reactor")
-                            .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType)
-                            .sendString(Mono.just(o)
-                                    .map(CommonResponse::new)
-                                    .map(gsonCreate::toJson)
-                            )
-                            .then();
+                    // if template
+                    if (o instanceof String) {
+                        // json
+                        return resp.status(status)
+                                .addHeader(HttpHeaderNames.SERVER, "power by reactor")
+                                .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType)
+                                .sendString(Mono.just((String) o))
+                                .then();
+                    }
+                    else {
+                        // json
+                        return resp.status(status)
+                                .addHeader(HttpHeaderNames.SERVER, "power by reactor")
+                                .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType)
+                                .sendString(Mono.just(o)
+                                        .map(CommonResponse::new)
+                                        .map(gsonCreate::toJson)
+                                )
+                                .then();
+                    }
                 });
     }
 
@@ -292,6 +309,10 @@ public class Dispatcher {
             // response
             else if (parameterClass == HttpServerResponse.class) {
                 objectList.add(response);
+            }
+            // modelMap
+            else if (parameterClass == ModelMap.class) {
+                objectList.add(new ModelMap());
             }
             // upload file
             else if (parameter.getAnnotation(UploadFilesParam.class) != null) {

@@ -10,6 +10,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.*;
+import freemarker.template.Configuration;
+import freemarker.template.DefaultObjectWrapperBuilder;
+import freemarker.template.TemplateExceptionHandler;
+import freemarker.template.Version;
 
 public class ApplicationModule extends AbstractModule {
 
@@ -42,25 +46,25 @@ public class ApplicationModule extends AbstractModule {
 			.create();
 	}
 
-//	@Singleton
-//	@Provides
-//	private Configuration viewConfiguration() {
-//
-//		Version version = new Version("2.3.23");
-//		DefaultObjectWrapperBuilder defaultObjectWrapperBuilder = new DefaultObjectWrapperBuilder(version);
-//
-//		Configuration cfg = new Configuration(version);
-//		cfg.setObjectWrapper(defaultObjectWrapperBuilder.build());
-//		cfg.setDefaultEncoding("UTF-8");
-//		// Don't log exceptions inside FreeMarker that it will thrown at you anyway:
-//		cfg.setLogTemplateExceptions(false);
-//		// Sets how errors will appear. Here we assume we are developing HTML pages.
-//		// For production systems TemplateExceptionHandler.RETHROW_HANDLER is better.
-//		// During web page *development* TemplateExceptionHandler.HTML_DEBUG_HANDLER is better.
-//		cfg.setTemplateExceptionHandler(TemplateExceptionHandler.HTML_DEBUG_HANDLER);
-//		cfg.setClassForTemplateLoading(this.getClass(), "/template");
-//		// Bind instance for DI
-//		// bind(Configuration.class).toInstance(cfg);
-//		return cfg;
-//	}
+	@Singleton
+	@Provides
+	private Configuration viewConfiguration() {
+
+		Version version = new Version("2.3.23");
+		DefaultObjectWrapperBuilder defaultObjectWrapperBuilder = new DefaultObjectWrapperBuilder(version);
+
+		Configuration cfg = new Configuration(version);
+		cfg.setObjectWrapper(defaultObjectWrapperBuilder.build());
+		cfg.setDefaultEncoding("UTF-8");
+		// Don't log exceptions inside FreeMarker that it will thrown at you anyway:
+		cfg.setLogTemplateExceptions(false);
+		// Sets how errors will appear. Here we assume we are developing HTML pages.
+		// For production systems TemplateExceptionHandler.RETHROW_HANDLER is better.
+		// During web page *development* TemplateExceptionHandler.HTML_DEBUG_HANDLER is better.
+		cfg.setTemplateExceptionHandler(TemplateExceptionHandler.HTML_DEBUG_HANDLER);
+		cfg.setClassForTemplateLoading(this.getClass(), "/template");
+		// Bind instance for DI
+		// bind(Configuration.class).toInstance(cfg);
+		return cfg;
+	}
 }
