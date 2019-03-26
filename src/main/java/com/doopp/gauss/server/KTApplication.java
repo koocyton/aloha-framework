@@ -1,14 +1,18 @@
 package com.doopp.gauss.server;
 
+import com.doopp.gauss.server.database.HikariDataSourceProvider;
 import com.doopp.gauss.server.filter.ManageFilter;
 import com.doopp.gauss.server.filter.OAuthFilter;
 import com.doopp.gauss.server.netty.Dispatcher;
 import com.doopp.gauss.server.module.ApplicationModule;
-import com.doopp.gauss.server.module.CustomMyBatisModule;
 import com.doopp.gauss.server.module.RedisModule;
+import com.github.pagehelper.PageInterceptor;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.name.Names;
+import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
+import org.mybatis.guice.MyBatisModule;
+import org.mybatis.guice.datasource.helper.JdbcHelper;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 
@@ -25,10 +29,29 @@ public class KTApplication {
         properties.load(new FileInputStream(args[0]));
 
         Injector injector = Guice.createInjector(
-            binder -> Names.bindProperties(binder, properties),
-            new CustomMyBatisModule(),
-            new RedisModule(),
-            new ApplicationModule()
+
+                // application Properties
+                binder -> Names.bindProperties(binder, properties),
+
+                // mybatis
+                new MyBatisModule() {
+                    @Override
+                    protected void initialize() {
+                        install(JdbcHelper.MySQL);
+                        bindDataSourceProviderType(HikariDataSourceProvider.class);
+                        // bindDataSourceProviderType(DruidDataSourceProvider.class);
+                        bindTransactionFactoryType(JdbcTransactionFactory.class);
+                        addMapperClasses("com.doopp.gauss.oauth.dao");
+                        addInterceptorClass(PageInterceptor.class);
+                        // Names.bindProperties(binder(), new ApplicationProperties());
+                    }
+                },
+
+                // redis
+                new RedisModule(),
+
+                // application
+                new ApplicationModule()
         );
 
         String host = properties.getProperty("server.host", "127.0.0.1");
