@@ -30,12 +30,6 @@ public class ApplicationModule extends AbstractModule {
 		return new IdWorker(1, 1);
 	}
 
-	//	@Singleton
-	//	@Provides
-	//	public ApplicationProperties applicationProperties() {
-	//		return new ApplicationProperties();
-	//	}
-
 	@Singleton
 	@Provides
 	public Gson gson () {

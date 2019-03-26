@@ -13,14 +13,6 @@ public class ListPage<T> {
     private int currentPage = 1;
     private List<T> list;
 
-    public <K> ListPage(List<K> list, Class<T> clazz) {
-        PageInfo<K> pageInfo = new PageInfo<>(list);
-        this.total = pageInfo.getTotal();
-        this.pageSize = pageInfo.getPageSize();
-        this.currentPage = pageInfo.getPageNum();
-        this.list = (List<T>)list;
-    }
-
     public ListPage(List<T> list) {
         PageInfo<T> pageInfo = new PageInfo<>(list);
         this.total = pageInfo.getTotal();

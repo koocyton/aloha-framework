@@ -8,10 +8,10 @@ import com.doopp.gauss.oauth.entity.vo.UserVO;
 import com.doopp.gauss.oauth.message.CommonResponse;
 import com.doopp.gauss.oauth.utils.EncryHelper;
 import com.doopp.gauss.oauth.service.ManageService;
-import com.doopp.gauss.server.redis.CustomShadedJedis;
+import com.doopp.gauss.server.redis.ShadedJedisUtils;
 import com.doopp.gauss.oauth.utils.HttpClientUtil;
-import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ public class ManageServiceImpl implements ManageService {
 
     @Inject
     @Named("managerSessionRedis")
-    private CustomShadedJedis managerSessionRedis;
+    private ShadedJedisUtils managerSessionRedis;
 
     @Inject
     private Gson gson;
@@ -41,8 +41,6 @@ public class ManageServiceImpl implements ManageService {
 
     @Inject
     private ClientDao clientDao;
-
-
 
     @Inject
     @Named("admin.client.id")
@@ -69,7 +67,7 @@ public class ManageServiceImpl implements ManageService {
                 .map(byteBuf ->{
                     Type cuClassType = new TypeToken<CommonResponse<UserVO>>(){}.getType();
                     CommonResponse<UserVO> userVOCommonResponse = gson.fromJson(byteBuf.toString(Charset.forName("UTF-8")), cuClassType);
-                    return userVOCommonResponse.getData();
+                    return (UserVO) userVOCommonResponse.getData();
                 })
                 .map(userVO -> {
                     managerSessionRedis.set(token, userVO);

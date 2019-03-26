@@ -1,6 +1,6 @@
 package com.doopp.gauss.server.module;
 
-import com.doopp.gauss.server.redis.CustomShadedJedis;
+import com.doopp.gauss.server.redis.ShadedJedisUtils;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
@@ -22,18 +22,18 @@ public class RedisModule extends AbstractModule {
     @Singleton
     @Provides
     @Named("userSessionRedis")
-    public CustomShadedJedis userSessionRedis(JedisPoolConfig jedisPoolConfig, @Named("redis.session.userRedisServers") String userRedisServer) {
+    public ShadedJedisUtils userSessionRedis(JedisPoolConfig jedisPoolConfig, @Named("redis.session.userRedisServers") String userRedisServer) {
         ShardedJedisPool shardedJedisPool = this.shardedJedisPool(jedisPoolConfig, userRedisServer.split(","));
-        return new CustomShadedJedis(shardedJedisPool);
+        return new ShadedJedisUtils(shardedJedisPool);
     }
 
 
     @Singleton
     @Provides
     @Named("managerSessionRedis")
-    public CustomShadedJedis managerSessionRedis(JedisPoolConfig jedisPoolConfig, @Named("redis.session.managerRedisServers") String managerRedisServer) {
+    public ShadedJedisUtils managerSessionRedis(JedisPoolConfig jedisPoolConfig, @Named("redis.session.managerRedisServers") String managerRedisServer) {
         ShardedJedisPool shardedJedisPool = this.shardedJedisPool(jedisPoolConfig, managerRedisServer.split(","));
-        return new CustomShadedJedis(shardedJedisPool);
+        return new ShadedJedisUtils(shardedJedisPool);
     }
 
     @Singleton

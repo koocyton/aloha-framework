@@ -52,8 +52,7 @@ public class ManageHandle {
     @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<ListPage<User>> users(@QueryParam("page") Integer page) {
         PageHelper.startPage(page, 30);
-        return manageService.getUsers()
-            .map(list->new ListPage<>(list, User.class));
+        return manageService.getUsers().map(ListPage::new);
     }
 
     @GET
@@ -61,8 +60,7 @@ public class ManageHandle {
     @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
     public Mono<ListPage<Client>> apps(@QueryParam("page") Integer page) {
         PageHelper.startPage(page, 30);
-        return manageService.getClients()
-                .map(list->new ListPage<>(list, Client.class));
+        return manageService.getClients().map(ListPage::new);
     }
 
     @GET

@@ -11,7 +11,7 @@ import com.doopp.gauss.oauth.message.OAuthRequest;
 import com.doopp.gauss.oauth.message.request.LoginRequest;
 import com.doopp.gauss.oauth.message.request.RegisterRequest;
 import com.doopp.gauss.oauth.utils.EncryHelper;
-import com.doopp.gauss.server.redis.CustomShadedJedis;
+import com.doopp.gauss.server.redis.ShadedJedisUtils;
 import com.doopp.gauss.oauth.utils.IdWorker;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -36,7 +36,7 @@ public class OAuthServiceImpl implements OAuthService {
 
     @Inject
     @Named("userSessionRedis")
-    private CustomShadedJedis userSessionRedis;
+    private ShadedJedisUtils userSessionRedis;
 
     @Override
     public Mono<User> userLogin(String account, String password) {

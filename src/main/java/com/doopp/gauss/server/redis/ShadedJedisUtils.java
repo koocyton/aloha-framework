@@ -3,22 +3,17 @@ package com.doopp.gauss.server.redis;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPool;
 
-import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CustomShadedJedis {
-
-    private final Logger logger = LoggerFactory.getLogger(CustomShadedJedis.class);
+public class ShadedJedisUtils {
 
     private ShardedJedisPool shardedJedisPool;
 
-    public CustomShadedJedis(ShardedJedisPool shardedJedisPool) {
+    public ShadedJedisUtils(ShardedJedisPool shardedJedisPool) {
         this.shardedJedisPool = shardedJedisPool;
     }
 
