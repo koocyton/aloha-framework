@@ -1,5 +1,6 @@
 package com.doopp.gauss.oauth.message.response;
 
+import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import lombok.Data;
 
@@ -19,6 +20,10 @@ public class ListPage<T> {
         this.pageSize = pageInfo.getPageSize();
         this.currentPage = pageInfo.getPageNum();
         this.list = list;
+    }
+
+    static void startPage() {
+        PageHelper.startPage(page, 30);
     }
 }
 
