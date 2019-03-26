@@ -78,7 +78,7 @@ public class Dispatcher {
         this.filters.put(path, filter);
     }
 
-    public Consumer<HttpServerRoutes> setHandleMethodRoute() {
+    public Consumer<HttpServerRoutes> routesBuilder() {
         return routes -> {
             try {
                 Set<String> handleClassesName = this.getHandleClassesName();
@@ -168,7 +168,7 @@ public class Dispatcher {
                     // if template
                     if (o instanceof String) {
                         return response.sendString(
-                                Mono.<String>create(slink->{
+                                Mono.create(slink -> {
                                     // slink.success("abc");
                                     String controllerName = handleObject.getClass().getSimpleName();
                                     String templateDirectory = controllerName.toLowerCase().substring(0, controllerName.length()-"handle".length());

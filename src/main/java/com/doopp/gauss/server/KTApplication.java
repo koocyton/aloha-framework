@@ -64,7 +64,7 @@ public class KTApplication {
         dispatcher.addFilter("/manage", new ManageFilter(injector));
 
         DisposableServer disposableServer = HttpServer.create()
-                .route(dispatcher.setHandleMethodRoute())
+                .route(dispatcher.routesBuilder())
                 .host(host)
                 .port(port)
                 .wiretap(true)
