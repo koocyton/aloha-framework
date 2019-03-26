@@ -11,12 +11,10 @@ import com.doopp.gauss.server.resource.ModelMap;
 import com.doopp.gauss.server.resource.RequestAttribute;
 import com.doopp.gauss.server.resource.RequestAttributeParam;
 import com.doopp.gauss.server.resource.UploadFilesParam;
-import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Injector;
-import com.google.inject.name.Named;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import io.netty.buffer.ByteBuf;
@@ -25,7 +23,6 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
 import io.netty.handler.codec.http.websocketx.*;
-import io.netty.util.AsciiString;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
@@ -48,8 +45,6 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 @Slf4j
 public class Dispatcher {
@@ -257,9 +252,7 @@ public class Dispatcher {
             // channel
             Channel channel = c.channel();
             // on disconnect
-            c.onDispose().subscribe(null, null, () -> {
-                handleObject.disconnect(channel);
-            });
+            c.onDispose().subscribe(null, null, () -> handleObject.disconnect(channel));
             // set requestAttribute to channel
             channel.attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
             // set channel to requestAttribute
