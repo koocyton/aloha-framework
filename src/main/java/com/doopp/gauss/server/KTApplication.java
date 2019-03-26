@@ -15,10 +15,12 @@ import org.mybatis.guice.MyBatisModule;
 import org.mybatis.guice.datasource.helper.JdbcHelper;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
+import reactor.netty.http.server.HttpServerRoutes;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.function.Consumer;
 
 public class KTApplication {
 
@@ -57,14 +59,15 @@ public class KTApplication {
         String host = properties.getProperty("server.host", "127.0.0.1");
         int port = Integer.valueOf(properties.getProperty("server.port", "8081"));
 
-        Dispatcher dispatcher = new Dispatcher();
-        dispatcher.setInjector(injector);
-        dispatcher.setHandlePackages("com.doopp.gauss.oauth.handle");
-        dispatcher.addFilter("/oauth", new OAuthFilter(injector));
-        dispatcher.addFilter("/manage", new ManageFilter(injector));
+        Consumer<HttpServerRoutes> routesBuilder = new Dispatcher()
+                .setInjector(injector)
+                .setHandlePackages("com.doopp.gauss.oauth.handle")
+                .addFilter("/oauth", new OAuthFilter(injector))
+                .addFilter("/manage", new ManageFilter(injector))
+                .routesBuilder();
 
         DisposableServer disposableServer = HttpServer.create()
-                .route(dispatcher.routesBuilder())
+                .route(routesBuilder)
                 .host(host)
                 .port(port)
                 .wiretap(true)

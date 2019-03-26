@@ -66,16 +66,19 @@ public class Dispatcher {
             .setLongSerializationPolicy(LongSerializationPolicy.STRING)
             .create();
 
-    public void setInjector(Injector injector) {
+    public Dispatcher setInjector(Injector injector) {
         this.injector = injector;
+        return this;
     }
 
-    public void setHandlePackages(String... packages) {
+    public Dispatcher setHandlePackages(String... packages) {
         Collections.addAll(this.handlePackages, packages);
+        return this;
     }
 
-    public void addFilter(String path, iFilter filter) {
+    public Dispatcher addFilter (String path, iFilter filter) {
         this.filters.put(path, filter);
+        return this;
     }
 
     public Consumer<HttpServerRoutes> routesBuilder() {
