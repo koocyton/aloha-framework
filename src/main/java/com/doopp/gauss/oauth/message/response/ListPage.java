@@ -21,9 +21,5 @@ public class ListPage<T> {
         this.currentPage = pageInfo.getPageNum();
         this.list = list;
     }
-
-    static void startPage() {
-        PageHelper.startPage(page, 30);
-    }
 }
 
