@@ -85,9 +85,8 @@ jar {
         }
     }
 }
-
-task clearJar(type: Delete) {
-    delete 'build', 'target'
+task clear(type:Delete){
+    delete 'build','target'
 }
-
-task release(type: Copy, dependsOn: [clearJar, jar])
+task release(type: Copy, dependsOn: [clear, jar]) {
+}
