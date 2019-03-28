@@ -81,7 +81,6 @@ jar {
     }
     from {
         configurations.compile.collect {
-            // zipTree(it)
             it.isDirectory() ? it : zipTree(it)
         }
     }
@@ -89,7 +88,6 @@ jar {
 
 task clearJar(type: Delete) {
     delete 'build', 'target'
-    // delete 'build/libs/lib'
 }
 
 task release(type: Copy, dependsOn: [clearJar, jar])
