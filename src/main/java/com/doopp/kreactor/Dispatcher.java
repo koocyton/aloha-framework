@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.function.Consumer;
@@ -69,12 +70,16 @@ class Dispatcher {
             try {
                 Set<String> handleClassesName = this.getHandleClassesName();
                 for (String handleClassName : handleClassesName) {
+                    int m = Class.forName(handleClassName).getModifiers();
+                    if (Modifier.isAbstract(m) || Modifier.isInterface(m)) {
+                        continue;
+                    }
                     // handle
                     Object handleObject = injector.getInstance(Class.forName(handleClassName));
                     Path pathAnnotation = handleObject.getClass().getAnnotation(Path.class);
                     String rootPath = (pathAnnotation == null) ? "" : pathAnnotation.value();
                     // if websocket
-                    if (handleObject instanceof WebSocketServerHandle && pathAnnotation != null) {
+                    if (AbstractWebSocketServerHandle.class.isAssignableFrom(handleObject.getClass()) && pathAnnotation != null) {
                         logger.info("    WS " + rootPath + " → " + handleClassName);
                         routes.get(rootPath, (req, resp) -> websocketPublisher(req, resp, (WebSocketServerHandle) handleObject));
                         continue;
