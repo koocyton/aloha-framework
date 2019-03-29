@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Path("/kreactor")
-public class KReactorExample {
+class Example {
 
     @GET
     @Path("/test/json")

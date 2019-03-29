@@ -20,7 +20,7 @@ import java.util.HashMap;
 
 class StaticHandle {
 
-    public NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
+    NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
 //        if (!this.doFilter(req, resp)) {
 //            return this.sendNotFoundPage(resp, new CommonException(CommonError.WRONG_SESSION));
 //        }
