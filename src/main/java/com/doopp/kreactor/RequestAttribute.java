@@ -1,9 +1,13 @@
 package com.doopp.kreactor;
 
+import io.netty.util.AttributeKey;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class RequestAttribute {
+
+    public static AttributeKey<RequestAttribute> REQUEST_ATTRIBUTE = AttributeKey.newInstance("request_attribute");
 
     private Map<String, Object> attributes = new HashMap<>();
 

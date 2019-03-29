@@ -11,7 +11,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.util.AttributeKey;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -22,8 +21,6 @@ import javax.ws.rs.Path;
 @Path("/manage/chat/ws")
 @Singleton
 public class WsChatHandle extends AbstractWebSocketServerHandle {
-
-    private static AttributeKey<RequestAttribute> REQUEST_ATTRIBUTE = AttributeKey.newInstance("request_attribute");
 
     @Inject
     private HttpClientUtil httpClientUtil;
@@ -41,7 +38,7 @@ public class WsChatHandle extends AbstractWebSocketServerHandle {
 
     @Override
     public void connected(Channel channel) {
-        RequestAttribute requestAttribute = channel.attr(REQUEST_ATTRIBUTE).get();
+        RequestAttribute requestAttribute = channel.attr(RequestAttribute.REQUEST_ATTRIBUTE).get();
         UserVO userVO = requestAttribute.getAttribute(CommonField.CURRENT_USER, UserVO.class);
         super.connected(channel, String.valueOf(userVO.getId()));
         this.userJoinLeave("join", channel);
@@ -50,7 +47,7 @@ public class WsChatHandle extends AbstractWebSocketServerHandle {
     @Override
     public Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel) {
         return Mono.just(frame.text()).map(s -> {
-            RequestAttribute requestAttribute = channel.attr(REQUEST_ATTRIBUTE).get();
+            RequestAttribute requestAttribute = channel.attr(RequestAttribute.REQUEST_ATTRIBUTE).get();
             UserVO userVO = requestAttribute.getAttribute(CommonField.CURRENT_USER, UserVO.class);
             for(Channel mapChannel : super.getChannelMap().values()) {
                 sendTextMessage(sendAction(ChatAction.CHAT, userVO, s), mapChannel);
@@ -81,10 +78,10 @@ public class WsChatHandle extends AbstractWebSocketServerHandle {
     private void userJoinLeave(String joinLeave, Channel channel) {
         StringBuilder userList = new StringBuilder();
         for(Channel mapChannel : super.getChannelMap().values()) {
-            if (mapChannel.attr(REQUEST_ATTRIBUTE)!=null) {
+            if (mapChannel.attr(RequestAttribute.REQUEST_ATTRIBUTE)!=null) {
                 userList.append(userList.toString().equals("") ? "" : ",");
                 userList.append(mapChannel
-                    .attr(REQUEST_ATTRIBUTE)
+                    .attr(RequestAttribute.REQUEST_ATTRIBUTE)
                     .get()
                     .getAttribute(CommonField.CURRENT_USER, UserVO.class)
                     .getName());
@@ -92,7 +89,7 @@ public class WsChatHandle extends AbstractWebSocketServerHandle {
         }
 
         if (channel!=null) {
-            RequestAttribute requestAttribute = channel.attr(REQUEST_ATTRIBUTE).get();
+            RequestAttribute requestAttribute = channel.attr(RequestAttribute.REQUEST_ATTRIBUTE).get();
             UserVO userVO = requestAttribute.getAttribute(CommonField.CURRENT_USER, UserVO.class);
 
             for(Channel mapChannel : super.getChannelMap().values()) {

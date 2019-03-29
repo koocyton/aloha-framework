@@ -14,7 +14,6 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.multipart.*;
 import io.netty.handler.codec.http.websocketx.*;
-import io.netty.util.AttributeKey;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +37,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 class Dispatcher {
-
-    private static AttributeKey<RequestAttribute> REQUEST_ATTRIBUTE = AttributeKey.newInstance("request_attribute");
 
     private static Logger logger = LoggerFactory.getLogger(Dispatcher.class);
 
@@ -247,7 +244,7 @@ class Dispatcher {
             // on disconnect
             c.onDispose().subscribe(null, null, () -> handleObject.disconnect(channel));
             // set requestAttribute to channel
-            channel.attr(REQUEST_ATTRIBUTE).set(requestAttribute);
+            channel.attr(RequestAttribute.REQUEST_ATTRIBUTE).set(requestAttribute);
             // set channel to requestAttribute
             requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
             // on connect

@@ -53,7 +53,7 @@ public class KTApplication {
         KReactorServer.create()
                 .injector(injector)
                 .bind("127.0.0.1", 8081)
-                .basePackages("com.doopp.gauss.oauth")
+                .basePackages("com.doopp.gauss.oauth.handle")
                 .addFilter("/oauth", new OAuthFilter(injector))
                 .addFilter("/manager", new ManageFilter(injector))
                 .launch();
