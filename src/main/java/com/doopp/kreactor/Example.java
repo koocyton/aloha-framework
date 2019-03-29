@@ -1,7 +1,5 @@
 package com.doopp.kreactor;
 
-import io.netty.handler.codec.http.HttpConstants;
-import io.netty.handler.codec.http.HttpContent;
 import reactor.core.publisher.Mono;
 
 import javax.ws.rs.GET;
@@ -11,7 +9,7 @@ import javax.ws.rs.core.MediaType;
 import java.util.HashMap;
 import java.util.Map;
 
-@Path("/kreactor")
+@Path("/com/doopp/kreactor")
 class Example {
 
     @GET

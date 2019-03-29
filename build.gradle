@@ -1,5 +1,5 @@
 group 'com.doopp.gauss'
-version '1.0'
+version '1.0.1'
 
 apply plugin: 'java'
 apply plugin: 'application'
@@ -74,16 +74,24 @@ tasks.withType(JavaCompile) {
 jar {
     manifest {
         attributes(
-                "Manifest-Version": 1.0,
+                "Manifest-Version": "1.0.1",
                 "Main-Class": "com.doopp.gauss.server.KTApplication",
-                "Class-Path": "./"
+                "Class-Path": "./",
+                "Build-Jdk": "1.8.0_161",
+                "Built-By": "koocyton",
+                "Bundle-Description": "Guice on Reactor-netty",
+                "Bundle-Name": "KReactorServer",
+                "Bundle-SymbolicName": "com.doopp.kreactor",
+                "Bundle-Version": "1.0.1",
+                "Export-Package": "com.doopp.kreactor;uses:=\"com.doopp.kreactor\";version=\"1.0.1\"",
+                // "Import-Package": ""
         )
     }
-    from {
-        configurations.compile.collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
-    }
+//    from {
+//        configurations.compile.collect {
+//            it.isDirectory() ? it : zipTree(it)
+//        }
+//    }
 }
 task clear(type:Delete){
     delete 'build','target'
