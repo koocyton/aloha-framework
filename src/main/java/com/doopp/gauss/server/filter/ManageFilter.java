@@ -4,7 +4,8 @@ import com.doopp.gauss.oauth.defined.CommonError;
 import com.doopp.gauss.oauth.defined.CommonField;
 import com.doopp.gauss.oauth.exception.CommonException;
 import com.doopp.gauss.oauth.service.ManageService;
-import com.doopp.gauss.server.resource.RequestAttribute;
+import com.doopp.kreactor.KReactorFilter;
+import com.doopp.kreactor.RequestAttribute;
 import com.google.inject.Injector;
 import io.netty.handler.codec.http.cookie.Cookie;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,7 @@ import java.util.Set;
 
 
 @Slf4j
-public class ManageFilter implements iFilter {
+public class ManageFilter implements KReactorFilter {
 
     private ManageService managerService;
 

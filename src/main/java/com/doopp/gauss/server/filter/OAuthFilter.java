@@ -4,7 +4,8 @@ import com.doopp.gauss.oauth.service.OAuthService;
 import com.doopp.gauss.oauth.defined.CommonError;
 import com.doopp.gauss.oauth.entity.User;
 import com.doopp.gauss.oauth.exception.CommonException;
-import com.doopp.gauss.server.resource.RequestAttribute;
+import com.doopp.kreactor.KReactorFilter;
+import com.doopp.kreactor.RequestAttribute;
 import com.google.inject.Injector;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -14,7 +15,7 @@ import reactor.netty.http.server.HttpServerResponse;
 import java.net.URI;
 
 @Slf4j
-public class OAuthFilter implements iFilter {
+public class OAuthFilter implements KReactorFilter {
 
     private OAuthService oauthService;
 

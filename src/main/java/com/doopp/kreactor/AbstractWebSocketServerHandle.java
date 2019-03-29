@@ -1,11 +1,12 @@
-package com.doopp.gauss.server.handle;
+package com.doopp.kreactor;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
-import io.netty.handler.codec.http.websocketx.*;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.AttributeKey;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.Mono;
@@ -14,10 +15,8 @@ import reactor.core.publisher.ReplayProcessor;
 import java.util.HashMap;
 import java.util.Map;
 
-@Slf4j
 public abstract class AbstractWebSocketServerHandle implements WebSocketServerHandle {
 
-    @Getter
     private Map<String, Channel> channelMap = new HashMap<>();
 
     private Map<String, FluxProcessor<String, String>> queueMessageMap = new HashMap<>();
@@ -38,7 +37,7 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
         channel.attr(CHANNEL_UNIQUE_KEY).set(channelKey);
         channelMap.put(channelKey, channel);
         queueMessageMap.put(channelKey, ReplayProcessor.create());
-        log.info("User join : {}", channelMap.size());
+        // log.info("User join : {}", channelMap.size());
         // channel.writeAndFlush(new TextWebSocketFrame("connected " + channel.id()));
     }
 
@@ -95,6 +94,10 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
             channel.disconnect();
             channel.close();
         }
-        log.info("User leave : {}", channelMap.size());
+        // log.info("User leave : {}", channelMap.size());
+    }
+
+    public Map<String, Channel> getChannelMap() {
+        return channelMap;
     }
 }

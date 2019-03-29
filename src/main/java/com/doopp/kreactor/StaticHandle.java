@@ -1,10 +1,9 @@
-package com.doopp.gauss.server.handle;
+package com.doopp.kreactor;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import lombok.extern.slf4j.Slf4j;
 import reactor.netty.ByteBufMono;
 import reactor.netty.NettyOutbound;
 import reactor.netty.http.server.HttpServerRequest;
@@ -19,8 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
-@Slf4j
-public class StaticHandle {
+class StaticHandle {
 
     public NettyOutbound sendStatic(HttpServerRequest req, HttpServerResponse resp) {
 //        if (!this.doFilter(req, resp)) {

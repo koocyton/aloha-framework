@@ -1,4 +1,4 @@
-package com.doopp.gauss.server.resource;
+package com.doopp.kreactor;
 
 import java.util.HashMap;
 import java.util.Map;

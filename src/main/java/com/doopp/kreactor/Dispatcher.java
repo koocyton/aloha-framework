@@ -1,30 +1,23 @@
-package com.doopp.gauss.server.netty;
+package com.doopp.kreactor;
 
 import com.doopp.gauss.oauth.defined.CommonError;
 import com.doopp.gauss.oauth.defined.CommonField;
 import com.doopp.gauss.oauth.exception.CommonException;
 import com.doopp.gauss.oauth.message.CommonResponse;
-import com.doopp.gauss.server.filter.iFilter;
-import com.doopp.gauss.server.handle.StaticHandle;
-import com.doopp.gauss.server.handle.WebSocketServerHandle;
-import com.doopp.gauss.server.resource.ModelMap;
-import com.doopp.gauss.server.resource.RequestAttribute;
-import com.doopp.gauss.server.resource.RequestAttributeParam;
-import com.doopp.gauss.server.resource.UploadFilesParam;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Injector;
-import freemarker.template.Configuration;
-import freemarker.template.Template;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.multipart.*;
 import io.netty.handler.codec.http.websocketx.*;
-import lombok.extern.slf4j.Slf4j;
+import io.netty.util.AttributeKey;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
@@ -35,10 +28,8 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -46,12 +37,15 @@ import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-@Slf4j
-public class Dispatcher {
+class Dispatcher {
+
+    private static AttributeKey<RequestAttribute> REQUEST_ATTRIBUTE = AttributeKey.newInstance("request_attribute");
+
+    private static Logger logger = LoggerFactory.getLogger(Dispatcher.class);
 
     private Injector injector;
 
-    private final Map<String, iFilter> filters = new HashMap<>();
+    private final Map<String, KReactorFilter> filters = new HashMap<>();
 
     private final Set<String> handlePackages = new HashSet<>();
 
@@ -61,22 +55,19 @@ public class Dispatcher {
             .setLongSerializationPolicy(LongSerializationPolicy.STRING)
             .create();
 
-    public Dispatcher setInjector(Injector injector) {
+    void setInjector(Injector injector) {
         this.injector = injector;
-        return this;
     }
 
-    public Dispatcher setHandlePackages(String... packages) {
+    void setHandlePackages(String... packages) {
         Collections.addAll(this.handlePackages, packages);
-        return this;
     }
 
-    public Dispatcher addFilter (String path, iFilter filter) {
+    void addFilter (String path, KReactorFilter filter) {
         this.filters.put(path, filter);
-        return this;
     }
 
-    public Consumer<HttpServerRoutes> routesBuilder() {
+    Consumer<HttpServerRoutes> routesBuilder() {
         return routes -> {
             try {
                 Set<String> handleClassesName = this.getHandleClassesName();
@@ -87,7 +78,7 @@ public class Dispatcher {
                     String rootPath = (pathAnnotation == null) ? "" : pathAnnotation.value();
                     // if websocket
                     if (handleObject instanceof WebSocketServerHandle && pathAnnotation != null) {
-                        log.info("    WS " + rootPath + " → " + handleClassName);
+                        logger.info("    WS " + rootPath + " → " + handleClassName);
                         routes.get(rootPath, (req, resp) -> websocketPublisher(req, resp, (WebSocketServerHandle) handleObject));
                         continue;
                     }
@@ -100,22 +91,22 @@ public class Dispatcher {
                             String requestPath = rootPath + method.getAnnotation(Path.class).value();
                             // GET
                             if (method.isAnnotationPresent(GET.class)) {
-                                log.info("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
+                                logger.info("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.get(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // POST
                             else if (method.isAnnotationPresent(POST.class)) {
-                                log.info("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
+                                logger.info("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.post(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // DELETE
                             else if (method.isAnnotationPresent(DELETE.class)) {
-                                log.info("DELETE " + requestPath + " → " + handleClassName + ":" + method.getName());
+                                logger.info("DELETE " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.delete(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // UPDATE
                             else if (method.isAnnotationPresent(PUT.class)) {
-                                log.info("   PUT " + requestPath + " → " + handleClassName + ":" + method.getName());
+                                logger.info("   PUT " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.put(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                         }
@@ -164,26 +155,29 @@ public class Dispatcher {
                             .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType);
 
                     // if template
+//                    if (o instanceof String) {
+//                        return response.sendString(
+//                                Mono.create(slink -> {
+//                                    // slink.success("abc");
+//                                    String controllerName = handleObject.getClass().getSimpleName();
+//                                    String templateDirectory = controllerName.toLowerCase().substring(0, controllerName.length()-"handle".length());
+//                                    Configuration viewConfiguration = injector.getInstance(Configuration.class);
+//                                    viewConfiguration.setClassForTemplateLoading(this.getClass(), "/template/" + templateDirectory);
+//                                    try {
+//                                        Template template = viewConfiguration.getTemplate(o + ".html");
+//                                        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//                                        template.process(modelMap, new OutputStreamWriter(outputStream));
+//                                        slink.success(outputStream.toString("UTF-8"));
+//                                    }
+//                                    catch(Exception e) {
+//                                        e.printStackTrace();
+//                                        slink.success((String) o);
+//                                    }
+//                                })
+//                        ).then();
+//                    }
                     if (o instanceof String) {
-                        return response.sendString(
-                                Mono.create(slink -> {
-                                    // slink.success("abc");
-                                    String controllerName = handleObject.getClass().getSimpleName();
-                                    String templateDirectory = controllerName.toLowerCase().substring(0, controllerName.length()-"handle".length());
-                                    Configuration viewConfiguration = injector.getInstance(Configuration.class);
-                                    viewConfiguration.setClassForTemplateLoading(this.getClass(), "/template/" + templateDirectory);
-                                    try {
-                                        Template template = viewConfiguration.getTemplate(o + ".html");
-                                        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                                        template.process(modelMap, new OutputStreamWriter(outputStream));
-                                        slink.success(outputStream.toString("UTF-8"));
-                                    }
-                                    catch(Exception e) {
-                                        e.printStackTrace();
-                                        slink.success((String) o);
-                                    }
-                                })
-                        ).then();
+                        return response.sendString(Mono.just((String) o)).then();
                     }
                     // if json
                     else if (contentType.contains(MediaType.APPLICATION_JSON)) {
@@ -210,7 +204,6 @@ public class Dispatcher {
     private Mono<RequestAttribute> doFilter(HttpServerRequest req, HttpServerResponse resp, RequestAttribute requestAttribute) {
         for (String key : this.filters.keySet()) {
             if (req.uri().length() >= key.length() && req.uri().substring(0, key.length()).equals(key)) {
-                log.info("request {}", req.uri(), key);
                 return this.filters.get(key).doFilter(req, resp, requestAttribute);
             }
         }
@@ -254,7 +247,7 @@ public class Dispatcher {
             // on disconnect
             c.onDispose().subscribe(null, null, () -> handleObject.disconnect(channel));
             // set requestAttribute to channel
-            channel.attr(CommonField.REQUEST_ATTRIBUTE).set(requestAttribute);
+            channel.attr(REQUEST_ATTRIBUTE).set(requestAttribute);
             // set channel to requestAttribute
             requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
             // on connect

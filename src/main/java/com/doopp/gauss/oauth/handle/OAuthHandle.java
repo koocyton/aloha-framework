@@ -9,7 +9,7 @@ import com.doopp.gauss.oauth.message.OAuthRequest;
 import com.doopp.gauss.oauth.message.request.LoginRequest;
 import com.doopp.gauss.oauth.message.request.RegisterRequest;
 import com.doopp.gauss.oauth.message.response.SessionToken;
-import com.doopp.gauss.server.resource.RequestAttributeParam;
+import com.doopp.kreactor.RequestAttributeParam;
 import com.google.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
