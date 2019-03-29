@@ -96,5 +96,4 @@ jar {
 task clear(type:Delete){
     delete 'build','target'
 }
-task release(type: Copy, dependsOn: [clear, jar]) {
-}
+task release(type: Copy, dependsOn: [clear, jar])
