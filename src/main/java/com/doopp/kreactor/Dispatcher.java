@@ -4,19 +4,17 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.LongSerializationPolicy;
 import com.google.inject.Injector;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.multipart.*;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.*;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.netty.ByteBufMono;
 import reactor.netty.NettyPipeline;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
@@ -26,8 +24,10 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -38,7 +38,7 @@ import java.util.jar.JarFile;
 
 class Dispatcher {
 
-    private static Logger logger = LoggerFactory.getLogger(Dispatcher.class);
+    private static String CURRENT_CHANNEL = "current_channel";
 
     private Injector injector;
 
@@ -79,7 +79,7 @@ class Dispatcher {
                     String rootPath = (pathAnnotation == null) ? "" : pathAnnotation.value();
                     // if websocket
                     if (AbstractWebSocketServerHandle.class.isAssignableFrom(handleObject.getClass()) && pathAnnotation != null) {
-                        logger.info("    WS " + rootPath + " → " + handleClassName);
+                        System.out.println("    WS " + rootPath + " → " + handleClassName);
                         routes.get(rootPath, (req, resp) -> websocketPublisher(req, resp, (WebSocketServerHandle) handleObject));
                         continue;
                     }
@@ -92,22 +92,22 @@ class Dispatcher {
                             String requestPath = rootPath + method.getAnnotation(Path.class).value();
                             // GET
                             if (method.isAnnotationPresent(GET.class)) {
-                                logger.info("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
+                                System.out.println("   GET " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.get(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // POST
                             else if (method.isAnnotationPresent(POST.class)) {
-                                logger.info("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
+                                System.out.println("  POST " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.post(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // DELETE
                             else if (method.isAnnotationPresent(DELETE.class)) {
-                                logger.info("DELETE " + requestPath + " → " + handleClassName + ":" + method.getName());
+                                System.out.println("DELETE " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.delete(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                             // UPDATE
                             else if (method.isAnnotationPresent(PUT.class)) {
-                                logger.info("   PUT " + requestPath + " → " + handleClassName + ":" + method.getName());
+                                System.out.println("   PUT " + requestPath + " → " + handleClassName + ":" + method.getName());
                                 routes.put(requestPath, (req, resp) -> httpPublisher(req, resp, method, handleObject));
                             }
                         }
@@ -130,15 +130,15 @@ class Dispatcher {
                 // 错误处理
                 .onErrorResume(throwable -> {
                     throwable.printStackTrace();
-                    return (throwable instanceof CommonException)
-                            ? Mono.just((CommonException) throwable)
-                            : Mono.just(new CommonException(CommonError.FAIL.code(), throwable.getMessage()));
+                    return (throwable instanceof KReactorException)
+                            ? Mono.just((KReactorException) throwable)
+                            : Mono.just(new KReactorException(500, throwable.getMessage()));
                 })
                 // 打包
                 .flatMap(o -> {
                     // status
-                    int status = (o instanceof CommonException)
-                            ? ((CommonException) o).getCode()
+                    int status = (o instanceof KReactorException)
+                            ? ((KReactorException) o).getCode()
                             : HttpResponseStatus.OK.code();
 
                     // content type
@@ -148,48 +148,46 @@ class Dispatcher {
                         for (String mediaType : method.getAnnotation(Produces.class).value()) {
                             _contentType += (_contentType.equals("")) ? mediaType : "; " + mediaType;
                         }
-                        contentType = _contentType;
+                        contentType = _contentType.contains("charset") ? _contentType : _contentType + "; charset=UTF-8";
                     }
 
                     HttpServerResponse response = resp.status(status)
                             .addHeader(HttpHeaderNames.SERVER, "power by reactor")
                             .addHeader(HttpHeaderNames.CONTENT_TYPE, contentType);
 
-                    // if template
-//                    if (o instanceof String) {
-//                        return response.sendString(
-//                                Mono.create(slink -> {
-//                                    // slink.success("abc");
-//                                    String controllerName = handleObject.getClass().getSimpleName();
-//                                    String templateDirectory = controllerName.toLowerCase().substring(0, controllerName.length()-"handle".length());
-//                                    Configuration viewConfiguration = injector.getInstance(Configuration.class);
-//                                    viewConfiguration.setClassForTemplateLoading(this.getClass(), "/template/" + templateDirectory);
-//                                    try {
-//                                        Template template = viewConfiguration.getTemplate(o + ".html");
-//                                        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//                                        template.process(modelMap, new OutputStreamWriter(outputStream));
-//                                        slink.success(outputStream.toString("UTF-8"));
-//                                    }
-//                                    catch(Exception e) {
-//                                        e.printStackTrace();
-//                                        slink.success((String) o);
-//                                    }
-//                                })
-//                        ).then();
-//                    }
-                    if (o instanceof String) {
-                        return response.sendString(Mono.just((String) o)).then();
-                    }
-                    // if json
-                    else if (contentType.contains(MediaType.APPLICATION_JSON)) {
+                    // json
+                    if (contentType.contains(MediaType.APPLICATION_JSON)) {
                         return response.sendString(Mono.just(o)
-                                        .map(CommonResponse::new)
+                                        .map(JsonResponse::new)
                                         .map(gsonCreate::toJson)
                                 ).then();
                     }
-                    // if other
+                    // string || template
+                    else if (o instanceof String) {
+                        return response.sendString(
+                            Mono.create(slink -> {
+                                try {
+                                    String controllerName = handleObject.getClass().getSimpleName();
+                                    String templateDirectory = controllerName.toLowerCase().substring(0, controllerName.length()-"handle".length());
+                                    Configuration viewConfiguration = injector.getInstance(Configuration.class);
+                                    viewConfiguration.setClassForTemplateLoading(this.getClass(), "/template/" + templateDirectory);
+                                    Template template = viewConfiguration.getTemplate(o + ".html");
+                                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                                    template.process(modelMap, new OutputStreamWriter(outputStream));
+                                    slink.success(outputStream.toString("UTF-8"));
+                                }
+                                catch(Exception e) {
+                                    e.printStackTrace();
+                                    slink.success((String) o);
+                                }
+                            })
+                        ).then();
+                    }
+                    // binary
                     else {
-                        return response.sendObject(Mono.just(o)).then();
+                        return response.sendObject(
+                            ByteBufMono.just(o)
+                        ).then();
                     }
                 });
     }
@@ -250,7 +248,7 @@ class Dispatcher {
             // set requestAttribute to channel
             channel.attr(RequestAttribute.REQUEST_ATTRIBUTE).set(requestAttribute);
             // set channel to requestAttribute
-            requestAttribute.setAttribute(CommonField.CURRENT_CHANNEL, channel);
+            requestAttribute.setAttribute(CURRENT_CHANNEL, channel);
             // on connect
             handleObject.connected(channel);
             // on receive
@@ -290,7 +288,7 @@ class Dispatcher {
                 .sendString(
                         // on send message
                         handleObject.receiveTextMessage(
-                                requestAttribute.getAttribute(CommonField.CURRENT_CHANNEL, Channel.class)
+                                requestAttribute.getAttribute(CURRENT_CHANNEL, Channel.class)
                         )
                 );
     }

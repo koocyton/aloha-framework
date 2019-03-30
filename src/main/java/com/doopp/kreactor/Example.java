@@ -14,7 +14,7 @@ class Example {
 
     @GET
     @Path("/test/json")
-    @Produces({MediaType.APPLICATION_JSON, "charset=UTF-8"})
+    @Produces({MediaType.APPLICATION_JSON})
     public Mono<Map<String, String>> testJson() {
         Map<String, String> map = new HashMap<>();
         map.put("hello", "hello world");
@@ -23,14 +23,14 @@ class Example {
 
     @GET
     @Path("/test/html")
-    @Produces({MediaType.TEXT_HTML, "charset=UTF-8"})
+    @Produces({MediaType.TEXT_HTML})
     public Mono<String> testHtml() {
         return Mono.just("hello world");
     }
 
     @GET
     @Path("/test/image")
-    @Produces({"image/jpeg", "charset=UTF-8"})
+    @Produces({"image/jpeg"})
     public Mono<Object> testImage() {
         return Mono.just("");
     }
