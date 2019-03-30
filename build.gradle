@@ -76,12 +76,11 @@ jar {
                 "Build-Jdk": "1.8.0_161",
                 "Built-By": "koocyton",
                 "Bundle-Description": "Guice on Reactor-netty",
-                "Bundle-Name": "KReactorServer",
-                "Bundle-SymbolicName": "com.doopp.kreactor",
+                "Bundle-Name": "kreactor",
+                "Bundle-SymbolicName": "com.doopp",
                 "Bundle-Version": "1.0.1",
                 // "Class-Path": configurations.compile.collect { "lib/${it.name}" }.join(' '),
                 "Export-Package": "com.doopp.kreactor;uses:=\"com.doopp.kreactor\";version=\"1.0.1\""
-                // "Import-Package": ""
         )
     }
 //    from {
