@@ -47,15 +47,24 @@ public class WsChatHandle extends AbstractWebSocketServerHandle {
     }
 
     @Override
-    public Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel) {
-        return Mono.just(frame.text()).map(s -> {
-            RequestAttribute requestAttribute = channel.attr(CommonField.REQUEST_ATTRIBUTE).get();
-            UserVO userVO = requestAttribute.getAttribute(CommonField.CURRENT_USER, UserVO.class);
-            for(Channel mapChannel : super.getChannelMap().values()) {
-                sendTextMessage(sendAction(ChatAction.CHAT, userVO, s), mapChannel);
-            }
-            return "";
-        });
+    public void onTextMessage(TextWebSocketFrame frame, Channel channel) {
+
+        String s = frame.text();
+        RequestAttribute requestAttribute = channel.attr(CommonField.REQUEST_ATTRIBUTE).get();
+        UserVO userVO = requestAttribute.getAttribute(CommonField.CURRENT_USER, UserVO.class);
+        for(Channel mapChannel : super.getChannelMap().values()) {
+            sendTextMessage(sendAction(ChatAction.CHAT, userVO, s), mapChannel);
+        }
+
+        // return Mono.just(frame.text()).map(s -> {
+        //     RequestAttribute requestAttribute = channel.attr(CommonField.REQUEST_ATTRIBUTE).get();
+        //     UserVO userVO = requestAttribute.getAttribute(CommonField.CURRENT_USER, UserVO.class);
+        //     for(Channel mapChannel : super.getChannelMap().values()) {
+        //         sendTextMessage(sendAction(ChatAction.CHAT, userVO, s), mapChannel);
+        //     }
+        //     return "";
+        // });
+
         //  return httpClientUtil.get("https://www.doopp.com", new HashMap<>())
         //          .map(byteBuf -> {
         //              String resp = byteBuf.toString(Charset.forName("UTF-8"));

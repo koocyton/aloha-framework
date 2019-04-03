@@ -62,11 +62,8 @@ public abstract class AbstractWebSocketServerHandle implements WebSocketServerHa
     }
 
     @Override
-    public Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel) {
-        return Mono.just(frame.text()).map(s->{
-            this.sendTextMessage(frame.text(), channel);
-            return "";
-        });
+    public void onTextMessage(TextWebSocketFrame frame, Channel channel) {
+        this.sendTextMessage(frame.text(), channel);
     }
 
     @Override

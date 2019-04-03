@@ -17,7 +17,7 @@ public interface WebSocketServerHandle {
 
     Flux<String> receiveTextMessage(Channel channel);
 
-    Mono<String> onTextMessage(TextWebSocketFrame frame, Channel channel);
+    void onTextMessage(TextWebSocketFrame frame, Channel channel);
 
     void onBinaryMessage(BinaryWebSocketFrame frame, Channel channel);
 

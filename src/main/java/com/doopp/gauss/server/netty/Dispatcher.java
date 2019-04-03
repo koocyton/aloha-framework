@@ -263,7 +263,7 @@ public class Dispatcher {
             in.aggregateFrames().receiveFrames().flatMap(frame -> {
                 // text frame
                 if (frame instanceof TextWebSocketFrame) {
-                    return handleObject.onTextMessage((TextWebSocketFrame) frame, channel);
+                    handleObject.onTextMessage((TextWebSocketFrame) frame, channel);
                 }
                 // binary frame
                 else if (frame instanceof BinaryWebSocketFrame) {
